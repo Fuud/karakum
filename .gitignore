@@ -10,3 +10,8 @@ build
 # IDE config
 .idea/
 *.iml
+
+.claude
+CLAUDE.md
+scripts
+branches.yml
