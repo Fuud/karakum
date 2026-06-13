@@ -42,7 +42,7 @@ val convertPropertySignature = createPlugin plugin@{ node, context, render ->
     val narrowingInfo = overrideDetectionService?.getNarrowing(node)
 
     if (narrowingInfo != null && narrowingInfo.basePropertyTypeNode != null) {
-        val baseType = renderNullable(narrowingInfo.basePropertyTypeNode, isOptional, context, render)
+        val baseType = renderNullable(narrowingInfo.basePropertyTypeNode, narrowingInfo.baseIsOptional, context, render)
         val narrowedJsName = annotation.takeIf { it.isNotEmpty() } ?: "@JsName(\"$rawName\")"
         val narrowedName = escapeIdentifier("${rawName}Narrowed")
         val overrideDecl = "${ifPresent(annotation) { "$it\n" }}override ${modifier} ${name}: $baseType"

@@ -178,12 +178,19 @@ private fun checkMethodSignature(
                     baseDeclaration = baseDeclaration,
                     baseParameterTypeNodes = baseParameterTypeNodes,
                     basePropertyTypeNode = null,
+                    baseIsOptional = false,
                 ))
             }
         }
     }
 
     return SignatureCheckResult.Compatible
+}
+
+private fun isOptionalProperty(node: Node): Boolean = when {
+    isPropertyDeclaration(node) -> (node as PropertyDeclaration).questionToken != null
+    isPropertySignature(node) -> (node as PropertySignature).questionToken != null
+    else -> false
 }
 
 private fun checkPropertySignature(
@@ -214,8 +221,21 @@ private fun checkPropertySignature(
                 baseDeclaration = baseDeclaration,
                 baseParameterTypeNodes = emptyArray(),
                 basePropertyTypeNode = baseTypeNode,
+                baseIsOptional = isOptionalProperty(baseDeclaration),
             ))
         }
+    }
+
+    val nodeIsOptional = isOptionalProperty(node)
+    val baseIsOptional = isOptionalProperty(baseDeclaration)
+
+    if (nodeIsOptional != baseIsOptional) {
+        return SignatureCheckResult.Narrowed(NarrowingInfo(
+            baseDeclaration = baseDeclaration,
+            baseParameterTypeNodes = emptyArray(),
+            basePropertyTypeNode = baseTypeNode ?: nodeTypeNode,
+            baseIsOptional = baseIsOptional,
+        ))
     }
 
     return SignatureCheckResult.Compatible
@@ -249,6 +269,7 @@ private fun checkAccessorSignature(
                 baseDeclaration = baseDeclaration,
                 baseParameterTypeNodes = emptyArray(),
                 basePropertyTypeNode = baseTypeNode,
+                baseIsOptional = false,
             ))
         }
     }

@@ -13,6 +13,7 @@ class NarrowingInfo(
     val baseDeclaration: Declaration,
     val baseParameterTypeNodes: Array<TypeNode?>,
     val basePropertyTypeNode: TypeNode?,
+    val baseIsOptional: Boolean,
 )
 
 class OverrideDetectionService {
