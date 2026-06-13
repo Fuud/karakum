@@ -55,20 +55,45 @@ val convertInterfaceDeclaration = createPlugin plugin@{ node, context, render ->
         .filter { it.isNotEmpty() }
         .joinToString(separator = ", ")
 
+    val hasMergedValue = declarationMergingService?.hasMergedValue(node) == true
+
+    val companionObjectMemberSet = if (hasMergedValue) {
+        declarationMergingService?.getCompanionObjectMembers(node, context)?.toSet() ?: emptySet()
+    } else {
+        emptySet()
+    }
+
     val members = (
             declarationMergingService
                 ?.getMembers(node, context)
                 ?: node.members.asArray()
             )
-        .map { render(it) }
+        .map { member ->
+            if (member in companionObjectMemberSet) "" else render(member)
+        }
+        .filter { it.isNotEmpty() }
         .joinToString(separator = "\n")
 
     val injectedMembers = (injections ?: emptyArray())
         .joinToString(separator = "\n")
 
+    val companionObject = if (hasMergedValue) {
+        val companionMembers = companionObjectMemberSet
+            .map { render(it) }
+            .joinToString(separator = "\n")
+
+        if (companionMembers.isNotEmpty()) {
+            "\ncompanion object {\n$companionMembers\n}"
+        } else {
+            "\ncompanion object"
+        }
+    } else {
+        ""
+    }
+
     """
 ${ifPresent(inheritanceModifier) { "$it " }}${ifPresent(externalModifier) { "$it " }}interface ${name}${ifPresent(typeParameters) { "<${it}>" }}${ifPresent(fullHeritageClauses) { " : $it"}} {
-${members}${ifPresent(injectedMembers) { "\n${it}"}}
+${members}${ifPresent(injectedMembers) { "\n${it}"}}$companionObject
 }
     """.trim()
 }
