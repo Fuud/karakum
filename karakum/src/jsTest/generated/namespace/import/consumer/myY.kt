@@ -1,6 +1,7 @@
 // Automatically generated - do not modify!
 
 @file:JsModule("import-consumer")
+@file:JsNonModule
 
 package import.consumer
 

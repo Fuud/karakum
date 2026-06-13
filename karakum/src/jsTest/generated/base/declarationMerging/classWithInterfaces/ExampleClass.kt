@@ -1,6 +1,7 @@
 // Automatically generated - do not modify!
 
 @file:JsModule("sandbox-base/declarationMerging/classWithInterfaces")
+@file:JsNonModule
 
 package sandbox.base.declarationMerging.classWithInterfaces
 

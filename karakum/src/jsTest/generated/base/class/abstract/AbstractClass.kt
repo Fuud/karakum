@@ -1,6 +1,7 @@
 // Automatically generated - do not modify!
 
 @file:JsModule("sandbox-base/class/abstract")
+@file:JsNonModule
 
 package sandbox.base.`class`.abstract
 

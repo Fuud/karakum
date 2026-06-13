@@ -1,6 +1,7 @@
 // Automatically generated - do not modify!
 
 @file:JsModule("package-namespace")
+@file:JsNonModule
 @file:JsQualifier("NestedNamespace")
 
 package `package`.namespace.nestednamespace

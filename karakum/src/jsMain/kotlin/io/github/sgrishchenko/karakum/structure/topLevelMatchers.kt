@@ -52,7 +52,7 @@ private val interfaceMatcher: TopLevelMatcher = { node ->
         arrayOf(TopLevelMatch(
             name = name,
             node = node,
-            hasRuntime = false,
+            hasRuntime = true,
         ))
     } else {
         null

@@ -1,6 +1,7 @@
 // Automatically generated - do not modify!
 
 @file:JsModule("sandbox-base/comment/unionOverloads")
+@file:JsNonModule
 
 package sandbox.base.comment.unionOverloads
 
