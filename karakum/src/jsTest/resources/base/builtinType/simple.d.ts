@@ -11,3 +11,7 @@ interface CustomMap extends Map<string, string> {}
 interface CustomSet extends Set<string> {}
 
 function testDOM(window: URL): Response
+
+function setLogger(logger: Function): void
+declare var logger: Function
+declare const debug: Function
