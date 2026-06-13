@@ -150,10 +150,57 @@ class TypeAliasDeclarationPlugin : Plugin {
 
         val type = next(typeNode)
 
+        val declarationMergingService = context.lookupService(declarationMergingServiceKey)
+        if (declarationMergingService?.hasMergedNamespace(node) == true) {
+            val typeScriptService = context.lookupService(typeScriptServiceKey)
+            val namespaceInfoService = context.lookupService(namespaceInfoServiceKey)
+            val inheritanceModifierService = context.lookupService(inheritanceModifierServiceKey)
+
+            val inheritanceModifier = inheritanceModifierService?.resolveInheritanceModifier(node, context)
+            val namespace = typeScriptService?.findClosestNamespace(node)
+            val externalModifier = namespaceInfoService?.resolveExternalModifier(namespace) ?: "external"
+
+            val allMembers = declarationMergingService.getMembers(node, context) ?: emptyArray()
+
+            val bodyMembers = allMembers
+                .filter { isTypeSideMember(it) }
+                .map { next(it) }
+                .filter { it.isNotEmpty() }
+                .joinToString(separator = "\n")
+
+            val companionMemberList = allMembers
+                .filter { !isTypeSideMember(it) }
+                .map { next(it) }
+                .filter { it.isNotEmpty() }
+                .joinToString(separator = "\n")
+
+            val companionObject = if (companionMemberList.isNotEmpty()) {
+                "\ncompanion object {\n$companionMemberList\n}"
+            } else if (bodyMembers.isEmpty()) {
+                "\ncompanion object"
+            } else {
+                ""
+            }
+
+            return """
+${ifPresent(inheritanceModifier) { "$it " }}${ifPresent(externalModifier) { "$it " }}interface ${name}${ifPresent(typeParameters) { "<${it}>" }} : $type {
+${bodyMembers}${companionObject}
+}
+            """.trim()
+        }
+
         return "typealias ${name}${ifPresent(typeParameters) { "<${it}>" }} = $type"
     }
 
     override suspend fun generate(context: Context, render: Render<Node>): ReadonlyArray<GeneratedFile> {
         return generateDerivedDeclarations(generated.toTypedArray(), context)
+    }
+
+    companion object {
+        private fun isTypeSideMember(member: NamedDeclaration): Boolean =
+            isInterfaceDeclaration(member)
+            || isTypeAliasDeclaration(member)
+            || isEnumDeclaration(member)
+            || isModuleDeclaration(member)
     }
 }

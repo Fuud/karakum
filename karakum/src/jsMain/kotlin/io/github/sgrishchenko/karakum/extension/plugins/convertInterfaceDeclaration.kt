@@ -5,9 +5,13 @@ import io.github.sgrishchenko.karakum.extension.InjectionType
 import io.github.sgrishchenko.karakum.extension.MEMBER
 import io.github.sgrishchenko.karakum.extension.createPlugin
 import io.github.sgrishchenko.karakum.extension.ifPresent
+import typescript.NamedDeclaration
 import typescript.SyntaxKind
 import typescript.asArray
+import typescript.isEnumDeclaration
 import typescript.isInterfaceDeclaration
+import typescript.isModuleDeclaration
+import typescript.isTypeAliasDeclaration
 
 val convertInterfaceDeclaration = createPlugin plugin@{ node, context, render ->
     if (!isInterfaceDeclaration(node)) return@plugin null
@@ -63,13 +67,16 @@ val convertInterfaceDeclaration = createPlugin plugin@{ node, context, render ->
         emptySet()
     }
 
-    val members = (
+    val allMembers = (
             declarationMergingService
                 ?.getMembers(node, context)
                 ?: node.members.asArray()
             )
+
+    val bodyMembers = allMembers
+        .filter { member -> member !in companionObjectMemberSet || isTypeSideMember(member) }
         .map { member ->
-            if (member in companionObjectMemberSet) "" else render(member)
+            if (member in companionObjectMemberSet && !isTypeSideMember(member)) "" else render(member)
         }
         .filter { it.isNotEmpty() }
         .joinToString(separator = "\n")
@@ -79,7 +86,9 @@ val convertInterfaceDeclaration = createPlugin plugin@{ node, context, render ->
 
     val companionObject = if (hasMergedValue) {
         val companionMembers = companionObjectMemberSet
+            .filter { !isTypeSideMember(it) }
             .map { render(it) }
+            .filter { it.isNotEmpty() }
             .joinToString(separator = "\n")
 
         if (companionMembers.isNotEmpty()) {
@@ -93,7 +102,13 @@ val convertInterfaceDeclaration = createPlugin plugin@{ node, context, render ->
 
     """
 ${ifPresent(inheritanceModifier) { "$it " }}${ifPresent(externalModifier) { "$it " }}interface ${name}${ifPresent(typeParameters) { "<${it}>" }}${ifPresent(fullHeritageClauses) { " : $it"}} {
-${members}${ifPresent(injectedMembers) { "\n${it}"}}$companionObject
+${bodyMembers}${ifPresent(injectedMembers) { "\n${it}"}}$companionObject
 }
     """.trim()
 }
+
+private fun isTypeSideMember(member: NamedDeclaration): Boolean =
+    isInterfaceDeclaration(member)
+    || isTypeAliasDeclaration(member)
+    || isEnumDeclaration(member)
+    || isModuleDeclaration(member)

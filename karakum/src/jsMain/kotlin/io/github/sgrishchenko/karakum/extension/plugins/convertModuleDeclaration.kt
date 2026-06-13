@@ -16,6 +16,7 @@ val convertModuleDeclaration = createPlugin plugin@{ node, context, render ->
 
     val declarationMergingService = context.lookupService(declarationMergingServiceKey)
     if (declarationMergingService?.isMergedWithInterface(node) == true) return@plugin ""
+    if (declarationMergingService?.isMergedWithTypeAlias(node) == true) return@plugin ""
 
     val typeScriptService = context.lookupService(typeScriptServiceKey)
     val namespaceInfoService = context.lookupService(namespaceInfoServiceKey)

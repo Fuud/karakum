@@ -101,9 +101,48 @@ class DeclarationMergingService @JsExport.Ignore constructor(private val program
         val exports = this.getUniqMembers(symbol.exports)
             .filter { member -> !isTypeParameterDeclaration(member) }
 
+        // Collect non-exported type-side declarations from ModuleBlock body.
+        // In module .d.ts files, non-exported namespace members (without `export`)
+        // are NOT in symbol.exports — they're only in the ModuleBlock's statements.
+        val existingNames = (members + exports)
+            .mapNotNull { it.name?.unsafeCast<typescript.Identifier>()?.text }
+            .toSet()
+
+        val bodyMembers = symbol.declarations
+            ?.mapNotNull { declaration ->
+                if (!isModuleDeclaration(declaration)) return@mapNotNull null
+                val body = declaration.body
+                if (body == null || !isModuleBlock(body)) return@mapNotNull null
+                body.statements.asArray()
+                    .filter { statement ->
+                        (isInterfaceDeclaration(statement)
+                            || isTypeAliasDeclaration(statement)
+                            || isEnumDeclaration(statement)
+                            || isModuleDeclaration(statement))
+                            && (statement.unsafeCast<NamedDeclaration>()).name
+                                ?.unsafeCast<typescript.Identifier>()?.text !in existingNames
+                    }
+                    .map { it.unsafeCast<NamedDeclaration>() }
+            }
+            ?.flatMap { it.asIterable() }
+            ?: emptyList()
+
         val namespaceInfoService = context.lookupService(namespaceInfoServiceKey)
 
-        return (members + exports).filter { member ->
+        val filteredBodyMembers = bodyMembers.filter { member ->
+            val parent = member.parent
+
+            if (
+                isModuleBlock(parent)
+                && namespaceInfoService?.resolveNamespaceStrategy(parent.parent) == NamespaceStrategy.`package`
+            ) {
+                return@filter false
+            }
+
+            return@filter true
+        }
+
+        return (members + exports + filteredBodyMembers).filter { member ->
             val parent = member.parent
 
             if (
@@ -166,11 +205,24 @@ class DeclarationMergingService @JsExport.Ignore constructor(private val program
         return declarations.any { isInterfaceDeclaration(it) }
     }
 
+    fun isMergedWithTypeAlias(node: NamedDeclaration): Boolean {
+        val symbol = this.getSymbol(node) ?: return false
+        val declarations = symbol.declarations ?: return false
+        return declarations.any { isTypeAliasDeclaration(it) }
+    }
+
     fun hasMergedValue(node: NamedDeclaration): Boolean {
         if (!isInterfaceDeclaration(node)) return false
         val symbol = this.getSymbol(node) ?: return false
         val valueDeclaration = symbol.valueDeclaration ?: return false
         return !isClassDeclaration(valueDeclaration)
+    }
+
+    fun hasMergedNamespace(node: NamedDeclaration): Boolean {
+        if (!isTypeAliasDeclaration(node)) return false
+        val symbol = this.getSymbol(node) ?: return false
+        val declarations = symbol.declarations ?: return false
+        return declarations.any { isModuleDeclaration(it) }
     }
 
     fun getCompanionObjectMembers(
