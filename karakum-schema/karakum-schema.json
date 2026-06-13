@@ -263,6 +263,13 @@
             ],
             "title": "plugins"
         },
+        "typeMapper": {
+            "title": "typeMapper",
+            "type": "object",
+            "additionalProperties": {
+                "type": "string"
+            }
+        },
         "varianceModifiers": {
             "anyOf": [
                 {

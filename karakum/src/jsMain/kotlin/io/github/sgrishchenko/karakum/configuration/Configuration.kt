@@ -106,6 +106,12 @@ external interface SchemaConfiguration {
 
     /**
      * @TJS-type object
+     * @additionalProperties { "type": "string" }
+     * */
+    val typeMapper: ReadonlyRecord<String, String>?
+
+    /**
+     * @TJS-type object
      * @additionalProperties { "$ref": "#/definitions/NamespaceStrategy" }
      * */
     val namespaceStrategy: ReadonlyRecord<String, NamespaceStrategy>?
@@ -167,6 +173,8 @@ external interface PartialConfiguration {
 
     val importMapper: ReadonlyRecord<String, Rule>?
 
+    val typeMapper: ReadonlyRecord<String, String>?
+
     val namespaceStrategy: ReadonlyRecord<String, NamespaceStrategy>?
 
     val conflictResolutionStrategy: ReadonlyRecord<String, ConflictResolutionStrategy>?
@@ -214,6 +222,8 @@ interface MutableConfiguration {
 
     var importMapper: Map<String, Rule>?
 
+    var typeMapper: Map<String, String>?
+
     var namespaceStrategy: Map<String, NamespaceStrategy>?
 
     var conflictResolutionStrategy: Map<String, ConflictResolutionStrategy>?
@@ -260,6 +270,8 @@ interface Configuration {
 
     val importInjector: Map<String, List<String>>
     val importMapper: Map<String, Rule>
+
+    val typeMapper: Map<String, String>
 
     val namespaceStrategy: Map<String, NamespaceStrategy>
 

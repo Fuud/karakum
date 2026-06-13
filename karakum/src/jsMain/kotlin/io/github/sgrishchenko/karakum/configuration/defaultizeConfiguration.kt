@@ -60,6 +60,8 @@ private class ConfigurationImpl(
     override val importInjector: Map<String, List<String>>,
     override val importMapper: Map<String, Rule>,
 
+    override val typeMapper: Map<String, String>,
+
     override val namespaceStrategy: Map<String, NamespaceStrategy>,
 
     override val conflictResolutionStrategy: Map<String, ConflictResolutionStrategy>,
@@ -156,6 +158,7 @@ internal suspend fun defaultizeConfiguration(configuration: MutableConfiguration
 
         importInjector = configuration.importInjector ?: emptyMap(),
         importMapper = configuration.importMapper ?: emptyMap(),
+        typeMapper = configuration.typeMapper ?: emptyMap(),
 
         namespaceStrategy = configuration.namespaceStrategy ?: emptyMap(),
 

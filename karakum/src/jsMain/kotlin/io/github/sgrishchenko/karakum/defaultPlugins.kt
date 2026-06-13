@@ -63,6 +63,7 @@ fun createPlugins(
 
     convertUtilityType, // should be applied before builtin type references and type references
     convertBuiltinTypeReference, // should be applied before identifiers
+    convertConfiguredTypeReference, // should be applied after builtins, before identifiers
 
     createPlugin { node, _, _ -> if (isIdentifier(node)) node.text else null },
 

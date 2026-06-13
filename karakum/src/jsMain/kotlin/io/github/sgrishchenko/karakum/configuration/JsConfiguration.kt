@@ -47,6 +47,8 @@ external interface JsConfiguration {
     val importInjector: ReadonlyRecord<String, ReadonlyArray<String>>
     val importMapper: ReadonlyRecord<String, Rule>
 
+    val typeMapper: ReadonlyRecord<String, String>
+
     val namespaceStrategy: ReadonlyRecord<String, NamespaceStrategy>
 
     val conflictResolutionStrategy: ReadonlyRecord<String, ConflictResolutionStrategy>
@@ -111,6 +113,7 @@ fun Configuration.toJsConfiguration(): JsConfiguration =
             .mapValues { (_, value) -> value.toTypedArray() }
             .toRecord(),
         importMapper = importMapper.toRecord(),
+        typeMapper = typeMapper.toRecord(),
 
         namespaceStrategy = namespaceStrategy.toRecord(),
 
