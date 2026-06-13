@@ -5,4 +5,4 @@
 
 package sandbox.base.utilityType.simple
 
-external fun processRequired(opts: ProcessRequiredOpts): Unit
+external fun processRequired(opts: BarRequired): Unit

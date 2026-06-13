@@ -5,4 +5,4 @@
 
 package sandbox.base.utilityType.simple
 
-external fun processPartial(opts: ProcessPartialOpts): Unit
+external fun processPartial(opts: FooPartial): Unit

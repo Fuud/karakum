@@ -5,4 +5,4 @@
 
 package sandbox.base.utilityType.simple
 
-external fun processOmit(opts: ProcessOmitOpts): Unit
+external fun processOmit(opts: FooAgeOmit): Unit

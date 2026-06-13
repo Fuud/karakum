@@ -2,7 +2,6 @@
 
 package sandbox.base.utilityType.simple
 
-external interface ProcessRequiredOpts {
+external interface FooNamePick {
 var name: String
-var age: Double
 }

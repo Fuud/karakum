@@ -4,6 +4,7 @@ import io.github.sgrishchenko.karakum.extension.nameResolvers.*
 import js.array.ReadonlyArray
 
 val defaultNameResolvers: ReadonlyArray<NameResolver> = arrayOf(
+     resolveUtilityTypeName,
      resolveFunctionParameterName,
      resolveFunctionReturnTypeName,
      resolveFunctionTypeAliasParameterName,

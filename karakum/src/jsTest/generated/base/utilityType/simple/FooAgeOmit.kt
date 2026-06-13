@@ -2,6 +2,6 @@
 
 package sandbox.base.utilityType.simple
 
-external interface MyClassMethodOpts {
+external interface FooAgeOmit {
 var name: String
 }

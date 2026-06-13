@@ -10,5 +10,5 @@ package sandbox.base.utilityType.crossModule.rendering
 external interface RenderingOptions {
 var useAI: Boolean
 var maxPoolSize: Double?
-var decoderOptions: RenderingOptionsDecoderOptions
+var decoderOptions: DecoderOptionsPartial
 }

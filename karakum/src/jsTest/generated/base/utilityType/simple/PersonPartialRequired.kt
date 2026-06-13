@@ -2,6 +2,8 @@
 
 package sandbox.base.utilityType.simple
 
-external interface ProcessPickOpts {
+external interface PersonPartialRequired {
 var name: String
+var age: Double
+var email: String
 }

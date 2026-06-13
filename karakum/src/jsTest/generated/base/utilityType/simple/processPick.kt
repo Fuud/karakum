@@ -5,4 +5,4 @@
 
 package sandbox.base.utilityType.simple
 
-external fun processPick(opts: ProcessPickOpts): Unit
+external fun processPick(opts: FooNamePick): Unit

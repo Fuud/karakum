@@ -5,4 +5,4 @@
 
 package sandbox.base.utilityType.simple
 
-external fun processReadonly(opts: ProcessReadonlyOpts): Unit
+external fun processReadonly(opts: FooReadonly): Unit

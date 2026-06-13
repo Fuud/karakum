@@ -2,7 +2,7 @@
 
 package sandbox.base.utilityType.simple
 
-external interface ProcessPartialOpts {
-var name: String?
-var age: Double?
+external interface FooReadonly {
+val name: String
+val age: Double
 }

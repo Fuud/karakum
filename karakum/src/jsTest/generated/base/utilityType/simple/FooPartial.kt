@@ -2,6 +2,7 @@
 
 package sandbox.base.utilityType.simple
 
-external interface ProcessOmitOpts {
-var name: String
+external interface FooPartial {
+var name: String?
+var age: Double?
 }

@@ -1,0 +1,11 @@
+// Automatically generated - do not modify!
+
+@file:JsModule("sandbox-base/utilityType/deterministic-naming")
+@file:JsNonModule
+
+package sandbox.base.utilityType.deterministicNaming
+
+// Nested utility type
+external interface StrictConfig : ConfigPartialRequired {
+
+}

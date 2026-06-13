@@ -2,7 +2,7 @@
 
 package sandbox.base.utilityType.simple
 
-external interface ProcessReadonlyOpts {
-val name: String
-val age: Double
+external interface BarRequired {
+var name: String
+var age: Double
 }
