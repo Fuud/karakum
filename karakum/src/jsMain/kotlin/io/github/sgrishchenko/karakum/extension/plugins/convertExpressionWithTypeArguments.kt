@@ -9,5 +9,5 @@ val convertExpressionWithTypeArguments = createPlugin plugin@{ node, context, re
     val checkCoverageService = context.lookupService(checkCoverageServiceKey)
     checkCoverageService?.cover(node)
 
-    render(node.expression) + convertNodeWithTypeArguments(node, render)
+    render(node.expression) + convertNodeWithTypeArguments(node, context, render)
 }

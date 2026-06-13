@@ -9,5 +9,5 @@ val convertTypeReference = createPlugin plugin@{ node, context, render ->
     val checkCoverageService = context.lookupService(checkCoverageServiceKey)
     checkCoverageService?.cover(node)
 
-    render(node.typeName) + convertNodeWithTypeArguments(node, render)
+    render(node.typeName) + convertNodeWithTypeArguments(node, context, render)
 }
