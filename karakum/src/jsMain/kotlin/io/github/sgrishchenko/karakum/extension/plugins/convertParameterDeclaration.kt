@@ -290,16 +290,28 @@ private fun expandUnions(
 
                 val types = flatUnionTypes(type, context)
 
-                for (subtype in types) {
+                val typeScriptService = context.lookupService(typeScriptServiceKey)
+                val typeChecker = typeScriptService?.program?.getTypeChecker()
+
+                val deduplicatedTypes = deduplicateUnionTypes(types, typeChecker, typeScriptService, checkCoverageService)
+
+                for ((subtype, isDuplicate) in deduplicatedTypes) {
                     if (isNullableType(subtype)) {
                         checkCoverageService?.deepCover(type)
                         continue
                     }
 
+                    val resolvedType = if (isDuplicate) {
+                        @Suppress("UNCHECKED_CAST_TO_EXTERNAL_INTERFACE")
+                        (typeScriptService?.resolveType(subtype) as? TypeNode) ?: subtype
+                    } else {
+                        subtype
+                    }
+
                     val generatedSignature = signature.toMutableList()
                     val parameterInfo = ParameterInfo(
                         parameter = parameter,
-                        type = subtype,
+                        type = resolvedType,
                         nullable = nullable,
                         optional = optional,
                     )
@@ -325,6 +337,46 @@ private fun expandUnions(
     }
 
     return currentSignatures.toTypedArray()
+}
+
+private fun deduplicateUnionTypes(
+    types: ReadonlyArray<TypeNode>,
+    typeChecker: TypeChecker?,
+    typeScriptService: TypeScriptService?,
+    checkCoverageService: CheckCoverageService?,
+): ReadonlyArray<Pair<TypeNode, Boolean>> {
+    if (typeChecker == null || typeScriptService == null) {
+        return types.map { Pair(it, false) }.toTypedArray()
+    }
+
+    val resolvedKeys = mutableMapOf<String, MutableList<Int>>()
+
+    for ((index, subtype) in types.withIndex()) {
+        val type = typeChecker.getTypeAtLocation(subtype)
+        val key = typeChecker.typeToString(type)
+        resolvedKeys.getOrPut(key) { mutableListOf() }.add(index)
+    }
+
+    val keptIndices = mutableSetOf<Int>()
+    val duplicateFirstIndices = mutableSetOf<Int>()
+
+    for (indices in resolvedKeys.values) {
+        keptIndices.add(indices.first())
+        if (indices.size > 1) {
+            duplicateFirstIndices.add(indices.first())
+            for (i in indices.drop(1)) {
+                checkCoverageService?.cover(types[i])
+            }
+        }
+    }
+
+    return types.mapIndexedNotNull { index, subtype ->
+        if (index in keptIndices) {
+            Pair(subtype, index in duplicateFirstIndices)
+        } else {
+            null
+        }
+    }.toTypedArray()
 }
 
 @JsExport
