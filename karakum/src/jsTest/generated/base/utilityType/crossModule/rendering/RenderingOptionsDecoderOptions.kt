@@ -2,7 +2,7 @@
 
 package sandbox.base.utilityType.crossModule.rendering
 
-// unhandled import: DecoderOptions from "./decoder"
+// unhandled import: DecoderOptions from "./utilityType/crossModule/decoder"
 
 external interface RenderingOptionsDecoderOptions {
 var useFrameBatching: Boolean?
