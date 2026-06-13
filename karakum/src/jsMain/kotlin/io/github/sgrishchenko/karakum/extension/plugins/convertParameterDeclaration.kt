@@ -71,9 +71,10 @@ suspend fun convertParameterDeclarations(
     render: Render<Node>,
     strategy: ParameterDeclarationStrategy,
     defaultValue: String? = null,
+    typeOverrides: Map<Int, TypeNode>? = null,
     template: suspend (parameters: String, signature: Signature) -> String,
 ): String {
-    val initialSignature = extractSignature(node)
+    val initialSignature = applyTypeOverrides(extractSignature(node), typeOverrides)
 
     val commentService = context.lookupService(commentServiceKey)
     val typeScriptService = context.lookupService(typeScriptServiceKey)
@@ -247,6 +248,23 @@ private fun extractSignature(node: SignatureDeclarationBase): Signature =
             optional = it.questionToken != null
         )
     }.toTypedArray()
+
+private fun applyTypeOverrides(signature: Signature, typeOverrides: Map<Int, TypeNode>?): Signature {
+    if (typeOverrides == null || typeOverrides.isEmpty()) return signature
+    return signature.mapIndexed { i, paramInfo ->
+        val overrideType = typeOverrides[i]
+        if (overrideType != null) {
+            ParameterInfo(
+                parameter = paramInfo.parameter,
+                type = overrideType,
+                nullable = paramInfo.nullable,
+                optional = paramInfo.optional,
+            )
+        } else {
+            paramInfo
+        }
+    }.toTypedArray()
+}
 
 private fun expandUnions(
     initialSignature: Signature,

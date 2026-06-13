@@ -101,7 +101,7 @@ private fun isClassTypeParameterReference(
 }
 
 private sealed interface SignatureCheckResult {
-    data object Compatible : SignatureCheckResult
+    class Compatible(val baseParameterTypeNodes: Array<TypeNode?>?) : SignatureCheckResult
     class Narrowed(val narrowingInfo: NarrowingInfo) : SignatureCheckResult
     data object Incompatible : SignatureCheckResult
 }
@@ -111,7 +111,7 @@ private fun checkSignature(
     baseSymbol: Symbol,
     typeChecker: TypeChecker,
 ): SignatureCheckResult {
-    val baseDeclaration = baseSymbol.valueDeclaration ?: return SignatureCheckResult.Compatible
+    val baseDeclaration = baseSymbol.valueDeclaration ?: return SignatureCheckResult.Compatible(baseParameterTypeNodes = null)
 
     if (isMethodDeclaration(node) && (isMethodDeclaration(baseDeclaration) || isMethodSignature(baseDeclaration))) {
         return checkMethodSignature(node, baseDeclaration, typeChecker)
@@ -140,7 +140,7 @@ private fun checkSignature(
     if (isMethodSignature(node) && (isPropertyDeclaration(baseDeclaration) || isPropertySignature(baseDeclaration))) return SignatureCheckResult.Incompatible
     if (isPropertySignature(node) && (isMethodDeclaration(baseDeclaration) || isMethodSignature(baseDeclaration))) return SignatureCheckResult.Incompatible
 
-    return SignatureCheckResult.Compatible
+    return SignatureCheckResult.Compatible(baseParameterTypeNodes = null)
 }
 
 private fun checkMethodSignature(
@@ -151,16 +151,18 @@ private fun checkMethodSignature(
     val baseParams = when {
         isMethodDeclaration(baseDeclaration) -> (baseDeclaration as MethodDeclaration).parameters.asArray()
         isMethodSignature(baseDeclaration) -> (baseDeclaration as MethodSignature).parameters.asArray()
-        else -> return SignatureCheckResult.Compatible
+        else -> return SignatureCheckResult.Compatible(baseParameterTypeNodes = null)
     }
 
     val nodeParams = when {
         isMethodDeclaration(node) -> (node as MethodDeclaration).parameters.asArray()
         isMethodSignature(node) -> (node as MethodSignature).parameters.asArray()
-        else -> return SignatureCheckResult.Compatible
+        else -> return SignatureCheckResult.Compatible(baseParameterTypeNodes = null)
     }
 
     if (nodeParams.size != baseParams.size) return SignatureCheckResult.Incompatible
+
+    val baseParameterTypeNodes = baseParams.map { it.type }.toTypedArray()
 
     for (i in nodeParams.indices) {
         val nodeParamType = nodeParams[i].type
@@ -173,7 +175,6 @@ private fun checkMethodSignature(
             val baseType = typeChecker.getTypeFromTypeNode(baseParamType)
 
             if (typeChecker.typeToString(nodeType) != typeChecker.typeToString(baseType)) {
-                val baseParameterTypeNodes = baseParams.map { it.type }.toTypedArray()
                 return SignatureCheckResult.Narrowed(NarrowingInfo(
                     baseDeclaration = baseDeclaration,
                     baseParameterTypeNodes = baseParameterTypeNodes,
@@ -184,7 +185,7 @@ private fun checkMethodSignature(
         }
     }
 
-    return SignatureCheckResult.Compatible
+    return SignatureCheckResult.Compatible(baseParameterTypeNodes)
 }
 
 private fun isOptionalProperty(node: Node): Boolean = when {
@@ -201,17 +202,17 @@ private fun checkPropertySignature(
     val nodeTypeNode = when {
         isPropertyDeclaration(node) -> (node as PropertyDeclaration).type
         isPropertySignature(node) -> (node as PropertySignature).type
-        else -> return SignatureCheckResult.Compatible
+        else -> return SignatureCheckResult.Compatible(baseParameterTypeNodes = null)
     }
 
     val baseTypeNode = when {
         isPropertyDeclaration(baseDeclaration) -> (baseDeclaration as PropertyDeclaration).type
         isPropertySignature(baseDeclaration) -> (baseDeclaration as PropertySignature).type
-        else -> return SignatureCheckResult.Compatible
+        else -> return SignatureCheckResult.Compatible(baseParameterTypeNodes = null)
     }
 
     if (nodeTypeNode != null && baseTypeNode != null) {
-        if (isClassTypeParameterReference(baseTypeNode, baseDeclaration)) return SignatureCheckResult.Compatible
+        if (isClassTypeParameterReference(baseTypeNode, baseDeclaration)) return SignatureCheckResult.Compatible(baseParameterTypeNodes = null)
 
         val nodeType = typeChecker.getTypeFromTypeNode(nodeTypeNode)
         val baseType = typeChecker.getTypeFromTypeNode(baseTypeNode)
@@ -238,7 +239,7 @@ private fun checkPropertySignature(
         ))
     }
 
-    return SignatureCheckResult.Compatible
+    return SignatureCheckResult.Compatible(baseParameterTypeNodes = null)
 }
 
 private fun checkAccessorSignature(
@@ -249,17 +250,17 @@ private fun checkAccessorSignature(
     val nodeTypeNode = when {
         isGetAccessor(node) -> (node as GetAccessorDeclaration).type
         isSetAccessor(node) -> (node as SetAccessorDeclaration).parameters.asArray().getOrNull(0)?.type
-        else -> return SignatureCheckResult.Compatible
+        else -> return SignatureCheckResult.Compatible(baseParameterTypeNodes = null)
     }
 
     val baseTypeNode = when {
         isGetAccessor(baseDeclaration) -> (baseDeclaration as GetAccessorDeclaration).type
         isSetAccessor(baseDeclaration) -> (baseDeclaration as SetAccessorDeclaration).parameters.asArray().getOrNull(0)?.type
-        else -> return SignatureCheckResult.Compatible
+        else -> return SignatureCheckResult.Compatible(baseParameterTypeNodes = null)
     }
 
     if (nodeTypeNode != null && baseTypeNode != null) {
-        if (isClassTypeParameterReference(baseTypeNode, baseDeclaration)) return SignatureCheckResult.Compatible
+        if (isClassTypeParameterReference(baseTypeNode, baseDeclaration)) return SignatureCheckResult.Compatible(baseParameterTypeNodes = null)
 
         val nodeType = typeChecker.getTypeFromTypeNode(nodeTypeNode)
         val baseType = typeChecker.getTypeFromTypeNode(baseTypeNode)
@@ -274,7 +275,7 @@ private fun checkAccessorSignature(
         }
     }
 
-    return SignatureCheckResult.Compatible
+    return SignatureCheckResult.Compatible(baseParameterTypeNodes = null)
 }
 
 val detectOverrideModifier: InheritanceModifier = { node, context ->
@@ -297,7 +298,13 @@ val detectOverrideModifier: InheritanceModifier = { node, context ->
 
         if (baseSymbol != null) {
             when (val result = checkSignature(node, baseSymbol, typeChecker)) {
-                is SignatureCheckResult.Compatible -> "override"
+                is SignatureCheckResult.Compatible -> {
+                    if (result.baseParameterTypeNodes != null) {
+                        val overrideDetectionService = context.lookupService(overrideDetectionServiceKey)
+                        overrideDetectionService?.registerCompatibleOverride(node, CompatibleOverrideInfo(result.baseParameterTypeNodes))
+                    }
+                    "override"
+                }
                 is SignatureCheckResult.Narrowed -> {
                     val overrideDetectionService = context.lookupService(overrideDetectionServiceKey)
                     overrideDetectionService?.registerNarrowing(node, result.narrowingInfo)
