@@ -54,6 +54,8 @@ val convertMemberName = createPlugin plugin@{ node, context, _ ->
 
             || (isGetAccessor(parent) && parent.name === node)
             || (isSetAccessor(parent) && parent.name === node)
+
+            || (isEnumMember(parent) && parent.name === node)
         ) {
             val checkCoverageService = context.lookupService(checkCoverageServiceKey)
             checkCoverageService?.cover(node)

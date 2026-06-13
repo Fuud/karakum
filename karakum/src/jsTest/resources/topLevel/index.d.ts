@@ -33,6 +33,13 @@ const enum StatusType {
     INACTIVE = "inactive",
 }
 
+const enum MediaTrackKind {
+    'audio' = "audio",
+    'video' = "video",
+    'screen' = "screen",
+    'audioshare' = "audioshare",
+}
+
 interface ActiveItem {
     type: StatusType.ACTIVE
     name: string
