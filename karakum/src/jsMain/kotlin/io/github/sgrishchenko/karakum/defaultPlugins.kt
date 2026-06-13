@@ -59,6 +59,7 @@ fun createPlugins(
     convertPrimitive(hasKind(SyntaxKind.SymbolKeyword)) { "js.symbol.Symbol" },
     convertPrimitive(hasKind(SyntaxKind.BigIntKeyword)) { "js.numbers.BigInt" },
 
+    convertUtilityType, // should be applied before builtin type references and type references
     convertBuiltinTypeReference, // should be applied before identifiers
 
     createPlugin { node, _, _ -> if (isIdentifier(node)) node.text else null },

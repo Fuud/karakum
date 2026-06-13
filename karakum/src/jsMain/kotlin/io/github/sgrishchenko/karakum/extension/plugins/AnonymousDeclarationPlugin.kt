@@ -69,7 +69,7 @@ class AnonymousDeclarationPlugin(
         val declaration = renderResult.declaration
         val reference = renderResult.reference
 
-        val sourceFileName = node.getSourceFileOrNull()?.fileName ?: "generated.d.ts"
+        val sourceFileName = node.getSourceFileOrNull()?.fileName ?: typeScriptService.getSourceFile(node)?.fileName ?: "generated.d.ts"
         val namespace = typeScriptService.findClosestNamespace(node)
 
         generated[node] = DerivedDeclaration(
