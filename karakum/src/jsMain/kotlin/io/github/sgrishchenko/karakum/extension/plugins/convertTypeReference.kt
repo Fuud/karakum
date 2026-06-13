@@ -13,14 +13,15 @@ val convertTypeReference = createPlugin plugin@{ node, context, render ->
     val typeName = node.typeName
     val renderedTypeName = when {
         isIdentifier(typeName) -> {
-            val qualifier = resolveNamespaceQualifier(typeName, context)
-            if (qualifier != null) "$qualifier.${typeName.text}" else render(typeName)
+            val result = resolveNamespaceQualifierAndRegisterImport(typeName, context)
+            if (result.qualifier != null) "${result.qualifier}.${typeName.text}" else render(typeName)
         }
         isQualifiedName(typeName) -> {
             // When the left part of a QualifiedName resolves to an enum declaration
             // (e.g., MessageType.DEBUG in `type: MessageType.DEBUG`), render just the
             // enum type name because in Kotlin, enum members are companion object vals, not types.
             val left = typeName.left
+            val right = typeName.right
             val typeScriptService = context.lookupService(typeScriptServiceKey)
             val typeChecker = typeScriptService?.program?.getTypeChecker()
             var leftSymbol = typeChecker?.getSymbolAtLocation(left)
@@ -34,10 +35,15 @@ val convertTypeReference = createPlugin plugin@{ node, context, render ->
 
             if (isEnumReference) {
                 checkCoverageService?.cover(typeName)
-                checkCoverageService?.cover(typeName.right)
+                checkCoverageService?.cover(right)
                 render(left)
             } else {
-                render(typeName)
+                // Register demand-driven import for the right-hand type.
+                // When an import is registered, use just the simple name since the
+                // import makes the qualifier unnecessary (and the namespace object
+                // like "Vmoji" won't exist in Kotlin scope).
+                val result = resolveNamespaceQualifierAndRegisterImport(right, context)
+                if (result.dynamicImportRegistered) right.text else render(typeName)
             }
         }
         else -> render(typeName)

@@ -61,7 +61,7 @@ fun isBuiltin(node: Node, context: Context): Boolean {
 }
 
 @Suppress("UNCHECKED_AS_TO_EXTERNAL_INTERFACE")
-private fun findIdentifierUsage(sourceFile: SourceFile, identifierText: String): Node? {
+internal fun findIdentifierUsage(sourceFile: SourceFile, identifierText: String): Node? {
     var result: Node? = null
 
     fun visit(node: Node) {

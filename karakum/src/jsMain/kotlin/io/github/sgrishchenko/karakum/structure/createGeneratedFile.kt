@@ -21,6 +21,7 @@ fun createGeneratedFile(
             removeUnusedImports(imports, body) +
                     generateImports(outputFileName, configuration)
             )
+        .distinct()
         .filter { it.isNotEmpty() }
         .joinToString(separator = "\n")
 

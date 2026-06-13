@@ -27,6 +27,7 @@ fun createTargetFile(
             removeUnusedImports(imports, body) +
                     generateImports(outputFileName, configuration)
             )
+        .distinct()
         .filter { it.isNotEmpty() }
         .joinToString(separator = "\n")
 

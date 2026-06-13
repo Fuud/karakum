@@ -6,6 +6,8 @@ import io.github.sgrishchenko.karakum.extension.plugins.AnnotationPlugin
 import io.github.sgrishchenko.karakum.extension.plugins.CommentPlugin
 import io.github.sgrishchenko.karakum.extension.plugins.detectOpenModifier
 import io.github.sgrishchenko.karakum.extension.plugins.detectOverrideModifier
+import io.github.sgrishchenko.karakum.extension.plugins.importInfoServiceKey
+import io.github.sgrishchenko.karakum.extension.plugins.typeScriptServiceKey
 import io.github.sgrishchenko.karakum.structure.TargetFile
 import io.github.sgrishchenko.karakum.structure.createTopLevelMatcher
 import io.github.sgrishchenko.karakum.structure.import.collectImportInfo
@@ -14,6 +16,7 @@ import io.github.sgrishchenko.karakum.structure.`package`.packageToOutputFileNam
 import io.github.sgrishchenko.karakum.structure.prepareStructure
 import io.github.sgrishchenko.karakum.structure.resolveConflicts
 import io.github.sgrishchenko.karakum.structure.sourceFile.collectSourceFileInfo
+import io.github.sgrishchenko.karakum.util.getSourceFileOrNull
 import io.github.sgrishchenko.karakum.util.traverse
 import js.array.ReadonlyArray
 import js.coroutines.promise
@@ -187,6 +190,23 @@ private suspend fun generate(mutableConfiguration: MutableConfiguration) {
             .map { render(it) }
             .joinToString(separator = "\n\n")
 
+        // Collect demand-driven imports discovered during rendering
+        val importInfoService = context.lookupService(importInfoServiceKey)
+        val dynamicImports = if (importInfoService != null) {
+            val typeScriptService = context.lookupService(typeScriptServiceKey)
+            item.nodes.flatMap { node ->
+                val nodeSourceFileName = node.getSourceFileOrNull()?.fileName
+                    ?: typeScriptService?.getSourceFile(node)?.fileName
+                    ?: return@flatMap emptyList<String>()
+                val nodeNamespace = typeScriptService?.findClosestNamespace(node)
+                importInfoService.resolveDynamicImports(nodeSourceFileName, nodeNamespace).asList()
+            }.distinct()
+        } else {
+            emptyList()
+        }
+
+        val allImports = (item.imports.asList() + dynamicImports).distinct().toTypedArray()
+
         if (ignoreOutput.all { pattern -> !path.matchesGlob(targetFileName, pattern) }) {
             targetFiles += TargetFile(
                 fileName = item.fileName,
@@ -194,7 +214,7 @@ private suspend fun generate(mutableConfiguration: MutableConfiguration) {
                 moduleName = item.moduleName,
                 qualifier = item.qualifier,
                 hasRuntime = item.hasRuntime,
-                imports = item.imports,
+                imports = allImports,
                 body = body,
             )
         }

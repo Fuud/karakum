@@ -5,3 +5,7 @@ export interface RenderingOptions {
     maxPoolSize: number | null;
     decoderOptions: Partial<DecoderOptions>;
 }
+
+export interface StrictRenderingOptions {
+    decoderOptions: NonNullable<DecoderOptions>;
+}

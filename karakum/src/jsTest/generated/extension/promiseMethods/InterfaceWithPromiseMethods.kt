@@ -2,6 +2,8 @@
 
 package extension.promiseMethods
 
+import extension.promiseFunctions.CustomPromise
+
 external interface InterfaceWithPromiseMethods {
 @JsName("returnsPromise1")
 fun returnsPromise1Async(): js.promise.Promise<String>

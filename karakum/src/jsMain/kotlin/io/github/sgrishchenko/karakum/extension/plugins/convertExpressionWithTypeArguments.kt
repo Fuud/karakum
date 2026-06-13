@@ -13,8 +13,8 @@ val convertExpressionWithTypeArguments = createPlugin plugin@{ node, context, re
     val expression = node.expression
     val renderedExpression = when {
         isIdentifier(expression) -> {
-            val qualifier = resolveNamespaceQualifier(expression, context)
-            if (qualifier != null) "$qualifier.${expression.text}" else render(expression)
+            val result = resolveNamespaceQualifierAndRegisterImport(expression, context)
+            if (result.qualifier != null) "${result.qualifier}.${expression.text}" else render(expression)
         }
         isPropertyAccessExpression(expression) -> {
             // When a PropertyAccessExpression in a heritage clause references an enum member
