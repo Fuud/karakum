@@ -72,6 +72,7 @@ private fun resolveTargetFileConflicts(
                 configuration
             )
         },
+        { it.lowercase() },
         merge@{ outputFileName, item, other ->
             if (item.body == "") {
                 return@merge other
@@ -108,7 +109,7 @@ private fun resolveTargetFileConflicts(
                     moduleName = item.moduleName,
                     qualifier = item.qualifier,
                     hasRuntime = item.hasRuntime || other.hasRuntime,
-                    imports = item.imports,
+                    imports = (item.imports + other.imports).distinct().toTypedArray(),
 
                     body = "${item.body}\n\n${other.body}",
                 )
@@ -134,6 +135,7 @@ private fun resolvePrimaryFileConflicts(
     val normalizedPrimaryFiles = normalizeItems(
         primaryFiles,
         { item -> item.fileName },
+        { it.lowercase() },
         merge@{ outputFileName, item, other ->
             if (item.body == "") {
                 return@merge other
@@ -184,6 +186,7 @@ private fun resolveDerivedFilesConflicts(
                 configuration
             )
         },
+        { it.lowercase() },
         merge@{ outputFileName, item, other ->
             if (item.body == "") {
                 return@merge other
@@ -233,6 +236,7 @@ private fun resolveCompoundFilesConflicts(
     val normalizedCompoundFiles = normalizeItems(
         compoundFiles,
         { item -> item.fileName },
+        { it.lowercase() },
         merge@{ outputFileName, item, other ->
             if (item.body == "") {
                 return@merge other
@@ -306,7 +310,7 @@ fun resolveConflicts(
 
     val normalizedPrimaryFiles = resolvePrimaryFileConflicts(primaryFiles, configuration)
 
-    val primaryFileNames = normalizedPrimaryFiles.map { it.fileName }.toSet()
+    val primaryFileNames = normalizedPrimaryFiles.map { it.fileName.lowercase() }.toSet()
 
     val normalizedDerivedFiles = resolveDerivedFilesConflicts(derivedFiles, configuration)
 
@@ -322,7 +326,7 @@ fun resolveConflicts(
 
         val fileName = path.resolve(output, outputFileName)
 
-        if (fileName in primaryFileNames) {
+        if (fileName.lowercase() in primaryFileNames) {
             auxiliaryDerivedFiles += GeneratedFile(
                 fileName = fileName,
                 body = item.body,
