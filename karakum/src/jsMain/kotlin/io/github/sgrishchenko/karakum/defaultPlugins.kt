@@ -26,6 +26,7 @@ fun createPlugins(
     InjectionPlugin(injections),
     NameResolverPlugin(nameResolvers),
     InheritanceModifierPlugin(inheritanceModifiers),
+    OverrideDetectionPlugin(),
     MutabilityModifierPlugin(mutabilityModifiers),
     VarianceModifierPlugin(varianceModifiers),
     NamespaceInfoPlugin(namespaceInfo),
