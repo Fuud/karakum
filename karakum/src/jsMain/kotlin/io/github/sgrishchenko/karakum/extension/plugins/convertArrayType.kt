@@ -3,6 +3,7 @@ package io.github.sgrishchenko.karakum.extension.plugins
 import io.github.sgrishchenko.karakum.extension.createPlugin
 import typescript.SyntaxKind
 import typescript.isArrayTypeNode
+import typescript.isTupleTypeNode
 import typescript.isTypeOperatorNode
 
 val convertArrayType = createPlugin plugin@{ node, context, render ->
@@ -17,6 +18,14 @@ val convertArrayType = createPlugin plugin@{ node, context, render ->
             checkCoverageService?.cover(type)
 
             return@plugin "js.array.ReadonlyArray<${render(type.elementType)}>"
+        }
+
+        if (isTupleTypeNode(type)) {
+            val checkCoverageService = context.lookupService(checkCoverageServiceKey)
+            checkCoverageService?.cover(node)
+            checkCoverageService?.cover(type)
+
+            return@plugin render(type)
         }
     }
 

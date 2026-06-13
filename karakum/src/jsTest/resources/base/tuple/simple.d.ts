@@ -6,6 +6,10 @@ type SimpleTuple2 = [string, number]
 
 type SimpleTuple3 = [string, number, boolean]
 
+type SimpleReadonlyTuple2 = readonly [string, number]
+
+type SimpleReadonlyTuple3 = readonly [string, number, boolean]
+
 interface TupleWithRest<A extends unknown[]> {
     tuple: [string, number, ...A, boolean]
 }
