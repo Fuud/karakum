@@ -29,6 +29,14 @@ declare namespace ObjectNamespace {
         someProperty: "3" | "4"
     }
 
+    interface BaseNotification {
+        type: string
+    }
+
+    interface DerivedNotification extends BaseNotification {
+        message: string
+    }
+
     namespace InnerObjectNamespace {
         const innerObjectNamespaceValue: number
 
