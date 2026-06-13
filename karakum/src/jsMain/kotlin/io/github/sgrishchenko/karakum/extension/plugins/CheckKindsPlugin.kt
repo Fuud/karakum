@@ -68,6 +68,7 @@ private val supportedKinds = setOf(
     SyntaxKind.CallSignature, // operator fun <params> invoke(params): returnType
     SyntaxKind.ExportDeclaration, // skip, public by default
     SyntaxKind.NamedExports, // ignore
+    SyntaxKind.ExportSpecifier, // ignore
     SyntaxKind.FunctionDeclaration, // fun <params> name(params): returnType
     SyntaxKind.TypePredicate, // Boolean TODO: support contracts
     SyntaxKind.TypeQuery, // ignore

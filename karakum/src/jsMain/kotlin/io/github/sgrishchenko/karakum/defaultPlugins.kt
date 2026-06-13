@@ -34,6 +34,7 @@ fun createPlugins(
     DeclarationMergingPlugin(program),
     CheckKindsPlugin(),
     CheckCoveragePlugin(),
+    ExportDeclarationPlugin(),
 
     convertRecord, // should be applied before type literals, aliases, and interfaces
 
