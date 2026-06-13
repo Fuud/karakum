@@ -1,7 +1,13 @@
 package io.github.sgrishchenko.karakum.structure.import
 
 import io.github.sgrishchenko.karakum.configuration.Configuration
+import io.github.sgrishchenko.karakum.structure.module.moduleNameToPackage
+import io.github.sgrishchenko.karakum.structure.`package`.applyPackageNameMapper
+import io.github.sgrishchenko.karakum.structure.`package`.createPackageName
+import io.github.sgrishchenko.karakum.structure.`package`.dirNameToPackage
+import io.github.sgrishchenko.karakum.structure.prepareLibraryName
 import io.github.sgrishchenko.karakum.structure.removePrefix
+import io.github.sgrishchenko.karakum.util.camelize
 import io.github.sgrishchenko.karakum.util.recordOrNull
 import io.github.sgrishchenko.karakum.util.singleOrNull
 import io.github.sgrishchenko.karakum.util.toPosix
@@ -62,6 +68,37 @@ private fun resolveImportModuleSpecifier(
     val stripped = if (resolved.startsWith("/")) resolved.removePrefix("/") else resolved
 
     return "./$stripped"
+}
+
+private fun computePackageForResolvedSpecifier(
+    resolvedSpecifier: String,
+    configuration: Configuration,
+): String {
+    val relativePath = resolvedSpecifier.removePrefix("./")
+
+    val dirName = path.dirname(relativePath)
+    val baseName = path.basename(relativePath)
+
+    val libraryName = prepareLibraryName(configuration.libraryName)
+
+    val packageChunks = if (dirName == ".") {
+        // Directory-level import (e.g., "./types") — baseName is a directory, not a file
+        moduleNameToPackage(libraryName) + dirNameToPackage(baseName)
+    } else {
+        // File-level import (e.g., "./core/Logger")
+        val fileName = camelize(
+            baseName
+                .replace("\\.d\\.ts$".toRegex(), "")
+                .replace("\\.ts$".toRegex(), "")
+                .replace("\\.js$".toRegex(), "")
+        )
+        var chunks = moduleNameToPackage(libraryName) + dirNameToPackage(dirName)
+        if (configuration.isolatedOutputPackage) chunks += fileName
+        chunks
+    }
+
+    val mappingResult = applyPackageNameMapper(packageChunks, "module.kt", configuration)
+    return createPackageName(mappingResult.`package`)
 }
 
 fun collectImportInfo(
@@ -139,6 +176,7 @@ fun collectImportInfo(
 
                         if (singlePackageName != null) {
                             for ((importName, importAlias) in Object.entries(importNames)) {
+                                if (importName !in unhandledImportNames) continue
                                 val effectiveImportName = resolveKotlinImportName(importName, importAlias)
                                 if (effectiveImportName != null) {
                                     imports += if (effectiveImportName == importAlias) {
@@ -177,6 +215,23 @@ fun collectImportInfo(
                                 }
                             }
                         }
+                    }
+                }
+
+                // Auto-resolve remaining unhandled names from relative imports
+                if (moduleName.startsWith("./") && unhandledImportNames.isNotEmpty()) {
+                    val autoPackage = computePackageForResolvedSpecifier(moduleName, configuration)
+                    for (importName in unhandledImportNames.toList()) {
+                        val importAlias = importNames[importName] ?: continue
+                        val effectiveImportName = resolveKotlinImportName(importName, importAlias)
+                        if (effectiveImportName != null) {
+                            imports += if (effectiveImportName == importAlias) {
+                                "import ${autoPackage}.${effectiveImportName}"
+                            } else {
+                                "import ${autoPackage}.${effectiveImportName} as $importAlias"
+                            }
+                        }
+                        unhandledImportNames -= importName
                     }
                 }
 
