@@ -22,6 +22,13 @@ export interface InterfaceWithTrickyField {
     get 44(): boolean
 }
 
+export interface InterfaceWithDollarField {
+    vector$float$: boolean
+    "kebab-dollar$test": boolean
+    $prefix: boolean
+    suffix$: boolean
+}
+
 export declare class ClassWithTrickyField {
     "_": boolean
     "__": boolean
