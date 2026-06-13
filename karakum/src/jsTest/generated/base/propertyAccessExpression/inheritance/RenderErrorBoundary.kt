@@ -4,6 +4,6 @@
 
 package sandbox.base.propertyAccessExpression.inheritance
 
-external class RenderErrorBoundary : React.Component<RenderErrorBoundaryProps, RenderErrorBoundaryState> {
+open external class RenderErrorBoundary : React.Component<RenderErrorBoundaryProps, RenderErrorBoundaryState> {
 
 }

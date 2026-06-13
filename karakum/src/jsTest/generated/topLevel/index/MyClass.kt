@@ -4,6 +4,6 @@
 
 package sandbox.top.level.index
 
-external class MyClass {
-var field: Boolean
+open external class MyClass {
+open var field: Boolean
 }

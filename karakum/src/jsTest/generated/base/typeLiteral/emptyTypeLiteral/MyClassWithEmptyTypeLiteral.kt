@@ -4,6 +4,6 @@
 
 package sandbox.base.typeLiteral.emptyTypeLiteral
 
-external class MyClassWithEmptyTypeLiteral {
-var value: Any
+open external class MyClassWithEmptyTypeLiteral {
+open var value: Any
 }

@@ -4,7 +4,7 @@
 
 package sandbox.base.typeLiteral.functionReturnType
 
-external class MyClassWithLiteralInReturn {
+open external class MyClassWithLiteralInReturn {
 
 companion object {
 fun getDerivedStateFromProps(): MyClassWithLiteralInReturnGetDerivedStateFromPropsResult

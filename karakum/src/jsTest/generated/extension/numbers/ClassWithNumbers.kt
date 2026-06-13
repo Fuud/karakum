@@ -2,11 +2,11 @@
 
 package extension.numbers
 
-external class ClassWithNumbers {
-var numberField1: Int
-var numberField2: Double
-var numberField3: Double /* fallback */
-fun numberMethod1(numberParam: Int): Double /* fallback */
-fun numberMethod2(numberParam: Double): Double /* fallback */
-fun numberMethod3(numberParam: Double /* fallback */): Double
+open external class ClassWithNumbers {
+open var numberField1: Int
+open var numberField2: Double
+open var numberField3: Double /* fallback */
+open fun numberMethod1(numberParam: Int): Double /* fallback */
+open fun numberMethod2(numberParam: Double): Double /* fallback */
+open fun numberMethod3(numberParam: Double /* fallback */): Double
 }

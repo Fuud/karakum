@@ -2,6 +2,6 @@
 
 package extension.promiseMethods
 
-external class CustomPromise : js.promise.Promise<String> {
+open external class CustomPromise : js.promise.Promise<String> {
 
 }

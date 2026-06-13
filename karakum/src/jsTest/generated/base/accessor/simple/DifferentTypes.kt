@@ -4,6 +4,6 @@
 
 package sandbox.base.accessor.simple
 
-external class DifferentTypes {
-var property: String
+open external class DifferentTypes {
+open var property: String
 }

@@ -4,6 +4,6 @@
 
 package sandbox.base.accessor.simple
 
-external class Setteronly {
-var property: String
+open external class Setteronly {
+open var property: String
 }

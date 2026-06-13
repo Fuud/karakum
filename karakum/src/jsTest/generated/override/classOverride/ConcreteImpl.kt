@@ -4,8 +4,8 @@
 
 package sandbox.override.classOverride
 
-external class ConcreteImpl : AbstractBase {
+open external class ConcreteImpl : AbstractBase {
 override fun render(): Unit
 override val label: String
-fun ownMethod(): Unit
+open fun ownMethod(): Unit
 }

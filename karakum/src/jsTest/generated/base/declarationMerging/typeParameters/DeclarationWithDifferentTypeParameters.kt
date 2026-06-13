@@ -4,6 +4,6 @@
 
 package sandbox.base.declarationMerging.typeParameters
 
-external class DeclarationWithDifferentTypeParameters<T /* default is Any? */> {
+open external class DeclarationWithDifferentTypeParameters<T /* default is Any? */> {
 
 }

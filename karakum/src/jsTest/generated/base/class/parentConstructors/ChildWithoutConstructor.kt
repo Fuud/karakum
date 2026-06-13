@@ -4,7 +4,7 @@
 
 package sandbox.base.`class`.parentConstructors
 
-external class ChildWithoutConstructor : ParentWithoutConstructor {
+open external class ChildWithoutConstructor : ParentWithoutConstructor {
 constructor (param: Double)
 constructor (param: String)
 }

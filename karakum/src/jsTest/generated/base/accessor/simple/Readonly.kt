@@ -4,6 +4,6 @@
 
 package sandbox.base.accessor.simple
 
-external class Readonly {
-val property: String
+open external class Readonly {
+open val property: String
 }

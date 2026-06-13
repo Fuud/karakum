@@ -4,7 +4,7 @@
 
 package sandbox.base.`class`.parentConstructors
 
-external class ChildWithoutConstructor2 : NSWithParent.ParentWithConstructor {
+open external class ChildWithoutConstructor2 : NSWithParent.ParentWithConstructor {
 constructor (param: Double)
 constructor (param: Boolean)
 }

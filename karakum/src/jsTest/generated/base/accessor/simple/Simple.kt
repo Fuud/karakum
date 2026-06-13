@@ -4,6 +4,6 @@
 
 package sandbox.base.accessor.simple
 
-external class Simple {
-var property: String
+open external class Simple {
+open var property: String
 }

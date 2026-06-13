@@ -4,8 +4,8 @@
 
 package sandbox.override.classOverride
 
-external class ConcreteEffect : IEffect {
+open external class ConcreteEffect : IEffect {
 override fun draw(source: String): Unit
 override var name: String
-fun customMethod(): Unit
+open fun customMethod(): Unit
 }
