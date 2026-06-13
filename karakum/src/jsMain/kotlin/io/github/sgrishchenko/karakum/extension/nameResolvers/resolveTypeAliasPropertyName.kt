@@ -31,5 +31,7 @@ val resolveTypeAliasPropertyName: NameResolver = nameResolver@{ node, context ->
 
     val parentName = typeAlias.name.text
 
-    "${capitalize(parentName)}${capitalize(propertyName)}"
+    val namespacePrefix = resolveNamespacePrefix(typeAlias, context)
+
+    "${namespacePrefix}${capitalize(parentName)}${capitalize(propertyName)}"
 }

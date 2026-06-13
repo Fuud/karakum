@@ -33,5 +33,7 @@ val resolveClassPropertyName: NameResolver = nameResolver@{ node, context ->
 
     val parentName = classNameNode.text
 
-    "${capitalize(parentName)}${capitalize(propertyName)}"
+    val namespacePrefix = resolveNamespacePrefix(classNode, context)
+
+    "${namespacePrefix}${capitalize(parentName)}${capitalize(propertyName)}"
 }

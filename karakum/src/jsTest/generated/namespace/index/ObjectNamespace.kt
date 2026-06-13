@@ -13,7 +13,7 @@ sealed interface objectNamespaceUnion {
 companion object
 }
 interface ObjectNamespaceInterface {
-var someProperty: ObjectNamespaceInterfaceSomeProperty
+var someProperty: ObjectNamespaceObjectNamespaceInterfaceSomeProperty
 }
 interface BaseNotification {
 var type: String
