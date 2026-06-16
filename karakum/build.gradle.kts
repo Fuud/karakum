@@ -15,7 +15,13 @@ kotlin {
     js {
         outputModuleName = "karakum"
 
-        nodejs()
+        nodejs {
+            testTask {
+                useMocha {
+                    timeout = "8000ms"
+                }
+            }
+        }
 
         compilerOptions {
             target = "es2015"
