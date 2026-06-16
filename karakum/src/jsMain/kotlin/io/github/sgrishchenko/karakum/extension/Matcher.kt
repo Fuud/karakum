@@ -5,7 +5,7 @@ import io.github.sgrishchenko.karakum.util.currentAbortable
 import io.github.sgrishchenko.karakum.util.getSourceFileOrNull
 import js.promise.Promise
 import js.promise.await
-import node.path.path
+import io.github.sgrishchenko.karakum.util.matchesGlob
 import typescript.NamedDeclaration
 import typescript.Node
 import typescript.isIdentifier
@@ -103,7 +103,7 @@ fun withName(name: String): (Node, Any?) -> Boolean {
 
 fun withFile(glob: String): (Node, Any?) -> Boolean {
     return { node, _ ->
-        node.getSourceFileOrNull().let { it != null && path.matchesGlob(it.fileName, glob) }
+        node.getSourceFileOrNull().let { it != null && matchesGlob(it.fileName, glob) }
     }
 }
 
