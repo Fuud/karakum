@@ -24,9 +24,6 @@ class BaseTest {
                 "importType/simple/DataRouterStateContext.kt" to listOf(
                     "sandbox.base.importType.router.RouterState"
                 ),
-                "property/doubleOptionality/AgnosticBaseRouteObject.kt" to listOf(
-                    "sandbox.base.generated.AgnosticBaseRouteObjectHandle15",
-                ),
             )
         }
     }

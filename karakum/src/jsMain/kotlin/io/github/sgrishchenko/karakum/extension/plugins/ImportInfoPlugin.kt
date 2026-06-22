@@ -16,14 +16,33 @@ class ImportInfoService @JsExport.Ignore constructor(
     private val program: Program,
     private val importInfo: ImportInfo,
 ) {
+    private val dynamicImports = mutableMapOf<Pair<String?, ModuleDeclaration?>, MutableSet<String>>()
+
     fun resolveImports(sourceFileName: String, node: ModuleDeclaration?): ReadonlyArray<String> {
-        if (node != null) {
-            return importInfo[node] ?: emptyArray()
+        val staticImports = if (node != null) {
+            importInfo[node] ?: emptyArray()
         } else {
             val sourcefile = program.getSourceFile(sourceFileName) ?: return emptyArray()
-
-            return importInfo[sourcefile] ?: emptyArray()
+            importInfo[sourcefile] ?: emptyArray()
         }
+
+        val key = Pair<String?, ModuleDeclaration?>(sourceFileName, node)
+        val dynImports = dynamicImports[key] ?: emptySet()
+
+        return (staticImports + dynImports).toList().distinct().toTypedArray()
+    }
+
+    fun addDynamicImport(sourceFileName: String, namespace: ModuleDeclaration?, importStatement: String) {
+        val staticImports = if (namespace != null) {
+            importInfo[namespace] ?: emptyArray()
+        } else {
+            val sourcefile = program.getSourceFile(sourceFileName) ?: return
+            importInfo[sourcefile] ?: emptyArray()
+        }
+        if (importStatement in staticImports) return
+
+        val key = Pair<String?, ModuleDeclaration?>(sourceFileName, namespace)
+        dynamicImports.getOrPut(key) { mutableSetOf() }.add(importStatement)
     }
 }
 

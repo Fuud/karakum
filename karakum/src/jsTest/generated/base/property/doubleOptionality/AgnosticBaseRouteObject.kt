@@ -2,8 +2,6 @@
 
 package sandbox.base.property.doubleOptionality
 
-import sandbox.base.generated.AgnosticBaseRouteObjectHandle15
-
 external interface AgnosticBaseRouteObject {
 var handle1: Any?
 var handle2: Any?

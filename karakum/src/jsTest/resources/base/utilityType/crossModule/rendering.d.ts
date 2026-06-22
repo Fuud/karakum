@@ -1,0 +1,1 @@
+type PartialDecoderConfig = Partial<DecoderConfig>

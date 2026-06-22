@@ -4,6 +4,7 @@ import io.github.sgrishchenko.karakum.extension.*
 import io.github.sgrishchenko.karakum.util.getParentOrNull
 import io.github.sgrishchenko.karakum.util.getSourceFileOrNull
 import io.github.sgrishchenko.karakum.util.setParentNodes
+import js.numbers.plus
 import typescript.*
 
 @JsExport
@@ -17,6 +18,7 @@ class TypeScriptService @JsExport.Ignore constructor(val program: Program) {
         newLine = NewLineKind.LineFeed,
     ))
     private val virtualParents = mutableMapOf<Node, Node>()
+    private val virtualSourceFiles = mutableMapOf<Node, SourceFile>()
 
     fun printNode(node: Node): String {
         val sourceFile = node.getSourceFileOrNull() ?: this.virtualSourceFile
@@ -38,22 +40,82 @@ class TypeScriptService @JsExport.Ignore constructor(val program: Program) {
         return findClosest(getParent(rootNode), predicate)
     }
 
-    @Suppress("UNCHECKED_CAST_TO_EXTERNAL_INTERFACE")
+    @Suppress("UNCHECKED_AS_TO_EXTERNAL_INTERFACE")
     fun findClosestNamespace(rootNode: Node?): ModuleDeclaration? {
         return findClosest(rootNode, ::isModuleDeclaration) as ModuleDeclaration?
     }
 
-    fun resolveType(node: TypeNode): Node? {
+    fun resolveType(node: TypeNode, context: Context? = null, flags: NodeBuilderFlags = NodeBuilderFlags.NoTruncation): Node? {
         val typeChecker = program.getTypeChecker()
+        val sourceFile = node.getSourceFileOrNull()
         val type = typeChecker.getTypeAtLocation(node)
-        val typeNode = typeChecker.typeToTypeNode(type, undefined, NodeBuilderFlags.NoTruncation)
 
-        val parent = getParent(node)
-        if (parent != null && typeNode != null) {
-            this.virtualParents[typeNode] = parent
+        // Gather imports from the Type object BEFORE typeToTypeNode
+        if (context != null && sourceFile != null) {
+            val importInfoService = context.lookupService(importInfoServiceKey)
+            if (importInfoService != null) {
+                val sourceFileName = sourceFile.fileName
+                val namespace = findClosestNamespace(node)
+                val gatheredImports = gatherImportsFromType(type, sourceFileName, namespace, context)
+                for (importStatement in gatheredImports) {
+                    importInfoService.addDynamicImport(sourceFileName, namespace, importStatement)
+                }
+
+                // Also gather imports from TypeReferenceNode type arguments.
+                // When TypeScript expands utility types like Partial<Container<DecoderConfig>>,
+                // the resulting Type is an anonymous expanded type without ObjectFlags.Reference,
+                // so walkType can't find type arguments. Walk the AST node's type arguments instead.
+                if (isTypeReferenceNode(node)) {
+                    val typeArgs = node.typeArguments
+                    if (typeArgs != null) {
+                        typeArgs.asArray().forEach { typeArg ->
+                            val typeArgType = typeChecker.getTypeAtLocation(typeArg)
+                            val typeArgImports = gatherImportsFromType(typeArgType, sourceFileName, namespace, context)
+                            typeArgImports.forEach { importStatement ->
+                                importInfoService.addDynamicImport(sourceFileName, namespace, importStatement)
+                            }
+                        }
+                    }
+                }
+            }
         }
 
-        return typeNode?.also { setParentNodes(typeNode) }
+        val typeNode = typeChecker.typeToTypeNode(type, undefined, flags)
+
+        val parent = getParent(node)
+        if (typeNode != null) {
+            if (parent != null) {
+                this.virtualParents[typeNode] = parent
+            }
+            if (sourceFile != null) {
+                this.virtualSourceFiles[typeNode] = sourceFile
+            } else {
+                val parentSourceFile = this.virtualSourceFiles[node]
+                if (parentSourceFile != null) {
+                    this.virtualSourceFiles[typeNode] = parentSourceFile
+                }
+            }
+            setParentNodes(typeNode)
+        }
+
+        return typeNode
+    }
+
+    fun getSourceFile(node: Node): SourceFile? {
+        val realSourceFile = node.getSourceFileOrNull()
+        if (realSourceFile != null) return realSourceFile
+
+        val direct = virtualSourceFiles[node]
+        if (direct != null) return direct
+
+        var ancestor: Node? = getParent(node)
+        while (ancestor != null) {
+            val ancestorSourceFile = virtualSourceFiles[ancestor]
+            if (ancestorSourceFile != null) return ancestorSourceFile
+            ancestor = getParent(ancestor)
+        }
+
+        return null
     }
 }
 
