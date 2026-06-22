@@ -14,6 +14,7 @@ external interface NormalizationResult<T> {
 fun <T> normalizeItems(
     items: ReadonlyArray<T>,
     keySelector: (item: T) -> String,
+    keyNormalizer: (String) -> String = { it },
     merge: (key: String, item: T, other: T) -> T?,
 ): NormalizationResult<T> {
     val result = mutableMapOf<String, T>()
@@ -21,24 +22,25 @@ fun <T> normalizeItems(
 
     for (item in items) {
         val key = keySelector(item)
-        val existingItem = result[key]
+        val normalizedKey = keyNormalizer(key)
+        val existingItem = result[normalizedKey]
 
         if (existingItem == null) {
-            result[key] = item
+            result[normalizedKey] = item
         } else {
             val mergedItem = merge(key, existingItem, item)
 
             if (mergedItem == null) {
-                var existingConflict = conflicts[key]
+                var existingConflict = conflicts[normalizedKey]
 
                 if (existingConflict == null) {
                     existingConflict = mutableListOf(existingItem)
-                    conflicts[key] = existingConflict
+                    conflicts[normalizedKey] = existingConflict
                 }
 
                 existingConflict += item
             } else {
-                result[key] = mergedItem
+                result[normalizedKey] = mergedItem
             }
         }
     }

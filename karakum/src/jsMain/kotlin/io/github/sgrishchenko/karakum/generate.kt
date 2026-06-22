@@ -29,30 +29,6 @@ import web.abort.Abortable
 import web.abort.asCoroutineScope
 import kotlin.coroutines.EmptyCoroutineContext
 
-private fun checkCasing(fileNames: ReadonlyArray<String>) {
-    var isConflict = false
-
-    for (i in 0..<(fileNames.size - 1)) {
-        for (j in (i + 1)..<fileNames.size) {
-            val fileName = fileNames[i]
-            val otherFileName = fileNames[j]
-
-            if (
-                fileName != otherFileName
-                && fileName.equals(otherFileName, ignoreCase = true)
-            ) {
-                isConflict = true
-
-                console.error("Files have the same name but different casing:\n${fileName}\n${otherFileName}")
-            }
-        }
-    }
-
-    if (isConflict) {
-        error("There are conflicts in file names")
-    }
-}
-
 private suspend fun generate(mutableConfiguration: MutableConfiguration) {
     val configuration = defaultizeConfiguration(mutableConfiguration)
 
@@ -261,8 +237,6 @@ private suspend fun generate(mutableConfiguration: MutableConfiguration) {
         generatedFiles.toTypedArray(),
         configuration,
     )
-
-    checkCasing(resultFiles.map { it.fileName }.toTypedArray())
 
     for (resultFile in resultFiles) {
         mkdir(path.dirname(resultFile.fileName), MkdirOptions(recursive = true))
