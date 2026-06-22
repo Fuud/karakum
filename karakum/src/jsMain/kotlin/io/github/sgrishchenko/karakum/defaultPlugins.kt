@@ -80,6 +80,7 @@ fun createPlugins(
     convertClassDeclaration,
     convertTypeParameterDeclaration,
     convertParameterDeclaration,
+    convertBuiltinFunctionType, // should be applied before type references
     convertTypeReference,
     convertHeritageClause,
     convertExpressionWithTypeArguments,
