@@ -34,6 +34,14 @@ private fun handleImportHierarchy(importInfo: ImportInfo): ImportInfo {
     return result
 }
 
+private fun resolveKotlinImportName(importName: String, importAlias: String): String? {
+    return when (importName) {
+        "default" -> importAlias
+        "*" -> null
+        else -> importName
+    }
+}
+
 fun collectImportInfo(
     sourceFiles: ReadonlyArray<SourceFile>,
     configuration: Configuration,
@@ -108,12 +116,14 @@ fun collectImportInfo(
 
                         if (singlePackageName != null) {
                             for ((importName, importAlias) in Object.entries(importNames)) {
-                                imports += if (importName == importAlias) {
-                                    "import ${singlePackageName}.${importName}"
-                                } else {
-                                    "import ${singlePackageName}.${importName} as $importAlias"
+                                val effectiveImportName = resolveKotlinImportName(importName, importAlias)
+                                if (effectiveImportName != null) {
+                                    imports += if (effectiveImportName == importAlias) {
+                                        "import ${singlePackageName}.${effectiveImportName}"
+                                    } else {
+                                        "import ${singlePackageName}.${effectiveImportName} as $importAlias"
+                                    }
                                 }
-
                                 unhandledImportNames -= importName
                             }
                         } else if (packageRecord != null) {
@@ -123,10 +133,13 @@ fun collectImportInfo(
                                 for ((importName, importAlias) in Object.entries(importNames)) {
                                     if (importNameRegexp.containsMatchIn(importName) && importName in unhandledImportNames) {
                                         if (packageName.endsWith(".")) {
-                                            imports += if (importName == importAlias) {
-                                                "import ${packageName}${importName}"
-                                            } else {
-                                                "import ${packageName}${importName} as $importAlias"
+                                            val effectiveImportName = resolveKotlinImportName(importName, importAlias)
+                                            if (effectiveImportName != null) {
+                                                imports += if (effectiveImportName == importAlias) {
+                                                    "import ${packageName}${effectiveImportName}"
+                                                } else {
+                                                    "import ${packageName}${effectiveImportName} as $importAlias"
+                                                }
                                             }
                                         } else if (packageName.isNotEmpty()) {
                                             imports += if (importName == importAlias || " as " in packageName) {
