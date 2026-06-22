@@ -3,6 +3,8 @@
 package sandbox.base.utilityType.crossModule.decoder
 
 external interface DecoderOptions {
-var encoding: String
-var fatal: Boolean
+var useFrameBatching: Boolean
+var useLowResolution: Boolean
+var fpsLimit: Double
+var specificVersion: String?
 }

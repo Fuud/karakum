@@ -61,7 +61,7 @@ private val supportedKinds = setOf(
     SyntaxKind.IndexedAccessType, // should be preprocessed
     SyntaxKind.NeverKeyword, // Nothing
     SyntaxKind.PrefixUnaryExpression, // operator operand
-    SyntaxKind.TypeOperator, // supported only readonly arrays
+    SyntaxKind.TypeOperator, // supported readonly arrays and keyof
     SyntaxKind.ParenthesizedType, // (type)
     SyntaxKind.ClassDeclaration, // interface <params> : parents { members }
     SyntaxKind.NullKeyword, // null

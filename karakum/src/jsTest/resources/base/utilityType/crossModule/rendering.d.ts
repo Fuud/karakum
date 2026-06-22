@@ -1,1 +1,7 @@
-type PartialDecoderConfig = Partial<DecoderConfig>
+import { DecoderOptions } from './decoder';
+
+export interface RenderingOptions {
+    useAI: boolean;
+    maxPoolSize: number | null;
+    decoderOptions: Partial<DecoderOptions>;
+}

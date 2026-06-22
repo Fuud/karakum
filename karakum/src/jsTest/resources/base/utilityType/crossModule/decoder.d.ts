@@ -1,15 +1,6 @@
-interface DecoderOptions {
-    encoding: string
-    fatal: boolean
-}
-
-interface ErrorType {
-    code: number
-    message: string
-}
-
-interface DecoderConfig {
-    options: DecoderOptions
-    errorType: ErrorType | null
-    name: string
+export interface DecoderOptions {
+    useFrameBatching: boolean;
+    useLowResolution: boolean;
+    fpsLimit: number;
+    specificVersion: string | null;
 }

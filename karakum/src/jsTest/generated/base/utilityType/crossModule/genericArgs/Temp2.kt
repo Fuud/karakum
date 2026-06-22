@@ -2,4 +2,6 @@
 
 package sandbox.base.utilityType.crossModule.genericArgs
 
-typealias MyConfig = Temp2
+external interface Temp2 {
+var value: Any?
+}

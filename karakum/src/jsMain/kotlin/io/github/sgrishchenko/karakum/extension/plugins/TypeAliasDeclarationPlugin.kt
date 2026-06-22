@@ -21,6 +21,24 @@ class TypeAliasDeclarationPlugin : Plugin {
 
     override suspend fun traverse(node: Node, context: Context) = Unit
 
+    private suspend fun renderTypeAliasTypeParameter(node: TypeParameterDeclaration, context: Context, next: Render<Node>): String {
+        val checkCoverageService = context.lookupService(checkCoverageServiceKey)
+        checkCoverageService?.cover(node)
+
+        val varianceModifierService = context.lookupService(varianceModifierServiceKey)
+
+        val name = next(node.name)
+        val varianceModifier = varianceModifierService?.resolveVarianceModifier(node, context)
+        val defaultType = node.default?.let { next(it) }
+
+        val constraintComment = node.constraint?.let {
+            val typeScriptService = context.lookupService(typeScriptServiceKey)
+            typeScriptService?.printNode(it)
+        }
+
+        return "${ifPresent(varianceModifier) { "$it "}}${name}${ifPresent(constraintComment) { " /* extends $it */"}}${ifPresent(defaultType) { " /* default is $it */"}}"
+    }
+
     private suspend fun resolveQualifiedName(node: TypeAliasDeclaration, context: Context, next: Render<Node>): String {
         val name = next(node.name)
         val result = mutableListOf<String>()
@@ -66,7 +84,7 @@ class TypeAliasDeclarationPlugin : Plugin {
         val name = next(node.name)
 
         val typeParameters = node.typeParameters?.asArray()
-            ?.map { next(it) }
+            ?.map { renderTypeAliasTypeParameter(it, context, next) }
             ?.filter { it.isNotEmpty() }
             ?.joinToString(separator = ", ")
 
@@ -113,7 +131,7 @@ class TypeAliasDeclarationPlugin : Plugin {
 
                 val mergedTypeParameters = (node.typeParameters?.asArray() ?: emptyArray())
                     .plus(functionTypeParameters.asArray())
-                    .map { next(it) }
+                    .map { renderTypeAliasTypeParameter(it, context, next) }
                     .filter { it.isNotEmpty() }
                     .joinToString(separator = ", ")
 

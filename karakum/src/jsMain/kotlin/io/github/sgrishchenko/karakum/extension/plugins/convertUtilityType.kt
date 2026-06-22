@@ -23,6 +23,9 @@ private val utilityTypeNames = setOf(
     "Exclude",
     "Extract",
     "NonNullable",
+    "ReturnType",
+    "Parameters",
+    "InstanceType",
 )
 
 private fun isUtilityType(node: TypeReferenceNode, context: Context): Boolean {
