@@ -29,6 +29,8 @@ fun convertMemberNameLiteral(node: StringLiteral): String {
         "`_`"
     } else if (isValidIdentifier(node.text)) {
         node.text
+    } else if ("$" in node.text) {
+        node.text
     } else if (
         isKebab(node.text)
         && isValidIdentifier(camelize(node.text))

@@ -25,7 +25,7 @@ fun isKebab(string: String): Boolean {
 
 @JsExport
 fun isValidIdentifier(string: String): Boolean {
-    return "[\\w$]+".toRegex().matches(string)
+    return "[\\w]+".toRegex().matches(string)
             && !"^\\d".toRegex().containsMatchIn(string)
 }
 
@@ -40,6 +40,10 @@ fun escapeIdentifier(string: String): String {
     }
 
     if ("^\\d".toRegex().containsMatchIn(string)) {
+        return "`${string}`"
+    }
+
+    if ("$" in string) {
         return "`${string}`"
     }
 
