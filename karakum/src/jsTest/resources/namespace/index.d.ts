@@ -44,6 +44,41 @@ declare namespace ObjectNamespace {
     }
 }
 
+declare enum ExternalIdType {
+    USER = "USER",
+    ANONYM = "ANONYM",
+    GROUP = "GROUP"
+}
+
+declare namespace SignalingMessage {
+    interface ExternalId {
+        type: 'UNKNOWN' | 'VK' | 'ANONYM'
+        id: string
+    }
+}
+
+declare enum StatusCode {
+    OK = "OK",
+    ERROR = "ERROR"
+}
+
+declare namespace ServiceNamespace {
+    class Response {
+        status: 'PENDING' | 'COMPLETE'
+    }
+}
+
+declare enum TagName {
+    DIV = "DIV",
+    SPAN = "SPAN"
+}
+
+declare namespace WrapperNamespace {
+    type Element = {
+        tag: 'IMG' | 'VIDEO'
+    }
+}
+
 declare namespace IgnoreNamespace {
     const topLevelValue: number
 

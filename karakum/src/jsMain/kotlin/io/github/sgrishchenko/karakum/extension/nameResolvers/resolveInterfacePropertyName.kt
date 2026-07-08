@@ -30,5 +30,7 @@ val resolveInterfacePropertyName: NameResolver = nameResolver@{ node, context ->
 
     val parentName = interfaceNode.name.text
 
-    "${capitalize(parentName)}${capitalize(propertyName)}"
+    val namespacePrefix = resolveNamespacePrefix(interfaceNode, context)
+
+    "${namespacePrefix}${capitalize(parentName)}${capitalize(propertyName)}"
 }
