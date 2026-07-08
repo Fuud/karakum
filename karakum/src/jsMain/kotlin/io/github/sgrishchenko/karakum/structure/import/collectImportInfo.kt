@@ -1,8 +1,10 @@
 package io.github.sgrishchenko.karakum.structure.import
 
 import io.github.sgrishchenko.karakum.configuration.Configuration
+import io.github.sgrishchenko.karakum.structure.removePrefix
 import io.github.sgrishchenko.karakum.util.recordOrNull
 import io.github.sgrishchenko.karakum.util.singleOrNull
+import io.github.sgrishchenko.karakum.util.toPosix
 import io.github.sgrishchenko.karakum.util.traverse
 import io.github.sgrishchenko.karakum.util.traverseSync
 import js.array.ReadonlyArray
@@ -10,6 +12,7 @@ import js.array.component1
 import js.array.component2
 import js.objects.Object
 import js.objects.recordOf
+import node.path.path
 import typescript.*
 
 typealias ImportInfo = Map<Declaration, ReadonlyArray<String>>
@@ -42,6 +45,25 @@ private fun resolveKotlinImportName(importName: String, importAlias: String): St
     }
 }
 
+private fun resolveImportModuleSpecifier(
+    rawSpecifier: String,
+    sourceFileName: String,
+    inputRoots: List<String>,
+): String {
+    if (!rawSpecifier.startsWith("./") && !rawSpecifier.startsWith("../")) {
+        return rawSpecifier
+    }
+
+    val sourceDir = path.dirname(sourceFileName)
+    val absoluteResolved = path.resolve(sourceDir, rawSpecifier)
+    val normalizedAbsolute = toPosix(absoluteResolved)
+
+    val resolved = removePrefix(normalizedAbsolute, inputRoots)
+    val stripped = if (resolved.startsWith("/")) resolved.removePrefix("/") else resolved
+
+    return "./$stripped"
+}
+
 fun collectImportInfo(
     sourceFiles: ReadonlyArray<SourceFile>,
     configuration: Configuration,
@@ -72,7 +94,8 @@ fun collectImportInfo(
                     return@traverseSync
                 }
 
-                val moduleName = moduleSpecifier.text
+                val rawSpecifier = moduleSpecifier.text
+                val moduleName = resolveImportModuleSpecifier(rawSpecifier, sourceFile.fileName, configuration.inputRoots)
                 val imports = result[declaration]?.toMutableList() ?: mutableListOf()
 
                 val importNames = recordOf<String, /* alias */ String>()
