@@ -150,6 +150,24 @@ class TypeAliasDeclarationPlugin : Plugin {
 
         val type = next(typeNode)
 
+        // Detect self-referencing type aliases (e.g. typealias X<T> = X<T>)
+        // which occur when the type body can't be expressed in Kotlin
+        // (e.g. mapped types with indexed access and generic parameters).
+        // Register as non-renderable so use sites expand the type instead.
+        val nonRenderableService = context.lookupService(nonRenderableTypeAliasServiceKey)
+        if (nonRenderableService != null) {
+            val expectedSelfReference = "${name}${ifPresent(typeParameters) { "<${it}>" }}"
+            if (type == expectedSelfReference) {
+                val typeScriptService = context.lookupService(typeScriptServiceKey)
+                val typeChecker = typeScriptService?.program?.getTypeChecker()
+                val symbol = typeChecker?.getSymbolAtLocation(node.name)
+                if (symbol != null) {
+                    nonRenderableService.register(symbol)
+                }
+                return null
+            }
+        }
+
         val declarationMergingService = context.lookupService(declarationMergingServiceKey)
         if (declarationMergingService?.hasMergedNamespace(node) == true) {
             val typeScriptService = context.lookupService(typeScriptServiceKey)

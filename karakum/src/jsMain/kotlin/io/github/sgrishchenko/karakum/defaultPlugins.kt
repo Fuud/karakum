@@ -24,6 +24,7 @@ fun createPlugins(
     ConfigurationPlugin(configuration),
     TypeScriptPlugin(program),
     UtilityTypeNameServicePlugin(),
+    NonRenderableTypeAliasServicePlugin(),
     InjectionPlugin(injections),
     NameResolverPlugin(nameResolvers),
     InheritanceModifierPlugin(inheritanceModifiers),
