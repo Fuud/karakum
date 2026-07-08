@@ -22,6 +22,8 @@ fun resolveNamespaceQualifier(identifier: Node, context: Context): String? {
         ?: symbol.declarations?.firstOrNull()
         ?: return null
 
+    if (isTypeParameterDeclaration(declaration)) return null
+
     val qualifiers = mutableListOf<String>()
     var current: Node? = typeScriptService.getParent(declaration)
 
