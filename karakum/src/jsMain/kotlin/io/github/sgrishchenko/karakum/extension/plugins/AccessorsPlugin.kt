@@ -78,8 +78,17 @@ class AccessorsPlugin : Plugin {
 
             checkCoverageService?.cover(node)
 
+            if (isGetAccessor(node)) {
+                node.modifiers?.asArray()?.find { it.kind == SyntaxKind.AbstractKeyword }?.let {
+                    checkCoverageService?.cover(it)
+                }
+            }
+
             if (isSetAccessor(node)) {
                 checkCoverageService?.deepCover(node.parameters.asArray()[0])
+                node.modifiers?.asArray()?.find { it.kind == SyntaxKind.AbstractKeyword }?.let {
+                    checkCoverageService?.cover(it)
+                }
             }
 
             this.coveredAccessors.add(symbol)
@@ -88,7 +97,14 @@ class AccessorsPlugin : Plugin {
 
             val modifier = mutabilityModifier ?: if (accessorInfo.setter != null) "var" else "val"
 
-            val name = escapeIdentifier(next(accessorName))
+            val abstractModifier = "abstract".takeIf {
+                val getterAbstract = accessorInfo.getter?.modifiers?.asArray()?.any { it.kind == SyntaxKind.AbstractKeyword } ?: false
+                val setterAbstract = accessorInfo.setter?.modifiers?.asArray()?.any { it.kind == SyntaxKind.AbstractKeyword } ?: false
+                getterAbstract || setterAbstract
+            }
+
+            val rawName = next(accessorName)
+            val name = escapeIdentifier(rawName)
             val annotation = createKebabAnnotation(accessorName)
 
             val getterType = accessorInfo.getter?.type
@@ -102,9 +118,23 @@ class AccessorsPlugin : Plugin {
                 "Any? /* type isn't declared */"
             }
 
-            return """
-${ifPresent(annotation) { "${it}\n" }}${ifPresent(inheritanceModifier) { "$it "}}${modifier} ${name}: $type
+            val result = """
+${ifPresent(annotation) { "${it}\n" }}${ifPresent(inheritanceModifier) { "$it "}}${ifPresent(abstractModifier) { "$it "}}${modifier} ${name}: $type
             """.trim()
+
+            val overrideDetectionService = context.lookupService(overrideDetectionServiceKey)
+            val narrowingInfo = overrideDetectionService?.getNarrowing(node)
+
+            return if (narrowingInfo != null && narrowingInfo.basePropertyTypeNode != null) {
+                val baseType = renderNullable(narrowingInfo.basePropertyTypeNode, false, context, next)
+                val narrowedJsName = annotation.takeIf { it.isNotEmpty() } ?: "@JsName(\"$rawName\")"
+                val narrowedName = escapeIdentifier("${rawName}Narrowed")
+                val overrideDecl = "${ifPresent(annotation) { "$it\n" }}override ${modifier} ${name}: $baseType"
+                val narrowedDecl = "$narrowedJsName\n${modifier} ${narrowedName}: $type"
+                "$overrideDecl\n$narrowedDecl"
+            } else {
+                result
+            }
         }
 
         return null

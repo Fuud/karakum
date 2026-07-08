@@ -24,16 +24,40 @@ val convertPropertyDeclaration = createPlugin plugin@{ node, context, render ->
     val readonly = node.modifiers?.asArray()?.find { modifier -> modifier.kind == SyntaxKind.ReadonlyKeyword }
     readonly?.let { checkCoverageService?.cover(it) }
 
+    val abstractModifier = "abstract".takeIf {
+        node.modifiers?.asArray()?.any {
+            if (it.kind == SyntaxKind.AbstractKeyword) {
+                checkCoverageService?.cover(it)
+                true
+            } else false
+        } ?: false
+    }
+
     node.questionToken?.let { checkCoverageService?.cover(it) }
 
     val modifier = mutabilityModifier ?: if (readonly != null) "val" else "var"
 
-    val name = escapeIdentifier(render(node.name))
+    val rawName = render(node.name)
+    val name = escapeIdentifier(rawName)
     val annotation = createKebabAnnotation(node.name)
 
     val isOptional = node.questionToken != null
 
     val type = renderNullable(node.type, isOptional, context, render)
 
-    "${ifPresent(annotation) { "${it}\n" }}${ifPresent(inheritanceModifier) { "$it "}}${modifier} ${name}: $type"
+    val result = "${ifPresent(annotation) { "${it}\n" }}${ifPresent(inheritanceModifier) { "$it "}}${ifPresent(abstractModifier) { "$it "}}${modifier} ${name}: $type"
+
+    val overrideDetectionService = context.lookupService(overrideDetectionServiceKey)
+    val narrowingInfo = overrideDetectionService?.getNarrowing(node)
+
+    if (narrowingInfo != null && narrowingInfo.basePropertyTypeNode != null) {
+        val baseType = renderNullable(narrowingInfo.basePropertyTypeNode, isOptional, context, render)
+        val narrowedJsName = annotation.takeIf { it.isNotEmpty() } ?: "@JsName(\"$rawName\")"
+        val narrowedName = escapeIdentifier("${rawName}Narrowed")
+        val overrideDecl = "${ifPresent(annotation) { "$it\n" }}override ${modifier} ${name}: $baseType"
+        val narrowedDecl = "$narrowedJsName\n${modifier} ${narrowedName}: $type"
+        "$overrideDecl\n$narrowedDecl"
+    } else {
+        result
+    }
 }
