@@ -45,6 +45,8 @@ private class MutableConfigurationImpl(
 
     override var importMapper: Map<String, Rule>? = null,
 
+    override var typeMapper: Map<String, String>? = null,
+
     override var namespaceStrategy: Map<String, NamespaceStrategy>? = null,
 
     override var conflictResolutionStrategy: Map<String, ConflictResolutionStrategy>? = null,
@@ -122,6 +124,9 @@ internal fun buildConfiguration(
 
             importMapper = importMapper
                 ?: partialConfiguration.importMapper?.toMap()
+
+            typeMapper = typeMapper
+                ?: partialConfiguration.typeMapper?.toMap()
 
             namespaceStrategy = namespaceStrategy
                 ?: partialConfiguration.namespaceStrategy?.toMap()

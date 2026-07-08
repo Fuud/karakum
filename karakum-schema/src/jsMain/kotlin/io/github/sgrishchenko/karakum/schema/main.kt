@@ -169,6 +169,13 @@ suspend fun main() {
                     Reflect.set(importMapper, "additionalProperties", additionalProperties)
                 }
 
+                Reflect.get(properties, "typeMapper")?.let { typeMapper ->
+                    Reflect.deleteProperty(typeMapper, "anyOf")
+
+                    Reflect.set(typeMapper, "type", "object")
+                    Reflect.set(typeMapper, "additionalProperties", recordOf("type" to "string"))
+                }
+
                 Reflect.get(properties, "namespaceStrategy")?.let { namespaceStrategy ->
                     Reflect.deleteProperty(namespaceStrategy, "anyOf")
 

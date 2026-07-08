@@ -51,6 +51,7 @@ suspend fun reifyConfiguration(configuration: SchemaConfiguration): PartialConfi
         packageNameMapper = configuration.packageNameMapper,
         importInjector = configuration.importInjector,
         importMapper = configuration.importMapper.unsafeCast<ReadonlyRecord<String, Rule>?>(),
+        typeMapper = configuration.typeMapper,
         namespaceStrategy = configuration.namespaceStrategy,
         conflictResolutionStrategy = configuration.conflictResolutionStrategy,
         compilerOptions = configuration.compilerOptions.unsafeCast<CompilerOptions?>(),
