@@ -1,6 +1,7 @@
 // Automatically generated - do not modify!
 
 @file:JsModule("sandbox-base/property/doubleOptionality")
+@file:JsNonModule
 
 package sandbox.base.property.doubleOptionality
 
