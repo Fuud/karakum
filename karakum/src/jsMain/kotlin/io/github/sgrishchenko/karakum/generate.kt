@@ -108,7 +108,7 @@ private suspend fun generate(mutableConfiguration: MutableConfiguration) {
 
     console.log("Source files count: ${sourceFiles.size}")
 
-    val importInfo = collectImportInfo(sourceFiles, configuration)
+    val importInfo = collectImportInfo(sourceFiles, configuration, program.getTypeChecker())
 
     val namespaceInfo = collectNamespaceInfo(sourceFiles, importInfo, configuration)
     val sourceFileInfo = collectSourceFileInfo(sourceFiles, importInfo, configuration)

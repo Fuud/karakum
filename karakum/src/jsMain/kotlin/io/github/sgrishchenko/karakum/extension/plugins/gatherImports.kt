@@ -1,6 +1,11 @@
 package io.github.sgrishchenko.karakum.extension.plugins
 
+import io.github.sgrishchenko.karakum.configuration.Configuration
 import io.github.sgrishchenko.karakum.extension.Context
+import io.github.sgrishchenko.karakum.structure.module.moduleNameToPackage
+import io.github.sgrishchenko.karakum.structure.`package`.applyPackageNameMapper
+import io.github.sgrishchenko.karakum.structure.`package`.createPackageName
+import io.github.sgrishchenko.karakum.structure.`package`.dirNameToPackage
 import io.github.sgrishchenko.karakum.util.getSourceFileOrNull
 import io.github.sgrishchenko.karakum.util.recordOrNull
 import io.github.sgrishchenko.karakum.util.singleOrNull
@@ -34,6 +39,39 @@ private fun extractNodeModulesName(fileName: String): String? {
     val match = nodeModulesPattern.find(fileName) ?: return null
     val name = match.groupValues[1]
     return name.replace("\\", "/")
+}
+
+private fun extractNodeModulesSubDir(fileName: String): String {
+    val idx = fileName.indexOf("/node_modules/")
+    val idx2 = if (idx >= 0) idx else fileName.indexOf("\\node_modules\\")
+    if (idx2 < 0) return ""
+
+    val afterNodeModules = fileName.substring(idx2 + "/node_modules/".length)
+    val segments = afterNodeModules.split("[/\\\\]".toRegex())
+
+    val packageSegments = if (segments.isNotEmpty() && segments[0].startsWith("@")) 2 else 1
+    if (segments.size <= packageSegments) return ""
+
+    val subDirSegments = segments.drop(packageSegments).dropLast(1)
+    if (subDirSegments.isEmpty()) return ""
+
+    return subDirSegments.joinToString("/")
+}
+
+private fun computePackageForNodeModulesImport(
+    declSourceFileName: String,
+    basePackageName: String,
+    configuration: Configuration,
+): String {
+    val subDir = extractNodeModulesSubDir(declSourceFileName)
+    if (subDir.isEmpty()) return basePackageName
+
+    val baseChunks = basePackageName.split(".")
+    val subDirChunks = dirNameToPackage(subDir)
+    val packageChunks = (baseChunks + subDirChunks).toTypedArray()
+
+    val mappingResult = applyPackageNameMapper(packageChunks, "module.kt", configuration)
+    return createPackageName(mappingResult.`package`)
 }
 
 private val primitiveFlags = setOf(
@@ -104,7 +142,8 @@ private fun resolveNodeModulesImport(
             val singlePackageName = packageInfo.singleOrNull()
 
             if (singlePackageName != null) {
-                return "import ${singlePackageName}.${typeName}"
+                val autoPackage = computePackageForNodeModulesImport(declSourceFileName, singlePackageName, configuration)
+                return "import ${autoPackage}.${typeName}"
             }
 
             val packageRecord = packageInfo.recordOrNull()
