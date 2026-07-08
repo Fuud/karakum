@@ -4,6 +4,6 @@
 
 package sandbox.base.typeLiteral.property
 
-external class FetcherClass<TData /* default is Any? */> {
-var state: FetcherClassState<TData>
+open external class FetcherClass<TData /* default is Any? */> {
+open var state: FetcherClassState<TData>
 }

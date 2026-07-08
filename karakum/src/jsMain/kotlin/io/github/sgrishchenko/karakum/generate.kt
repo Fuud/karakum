@@ -4,6 +4,7 @@ import io.github.sgrishchenko.karakum.configuration.*
 import io.github.sgrishchenko.karakum.extension.*
 import io.github.sgrishchenko.karakum.extension.plugins.AnnotationPlugin
 import io.github.sgrishchenko.karakum.extension.plugins.CommentPlugin
+import io.github.sgrishchenko.karakum.extension.plugins.detectOpenModifier
 import io.github.sgrishchenko.karakum.extension.plugins.detectOverrideModifier
 import io.github.sgrishchenko.karakum.structure.TargetFile
 import io.github.sgrishchenko.karakum.structure.createTopLevelMatcher
@@ -132,7 +133,7 @@ private suspend fun generate(mutableConfiguration: MutableConfiguration) {
         configuration,
         injections,
         nameResolvers,
-        listOf(detectOverrideModifier) + inheritanceModifiers,
+        listOf(detectOverrideModifier, detectOpenModifier) + inheritanceModifiers,
         mutabilityModifiers,
         varianceModifiers,
         program,

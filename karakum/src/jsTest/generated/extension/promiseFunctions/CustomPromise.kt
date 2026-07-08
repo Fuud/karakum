@@ -2,6 +2,6 @@
 
 package extension.promiseFunctions
 
-external class CustomPromise : js.promise.Promise<String> {
+open external class CustomPromise : js.promise.Promise<String> {
 
 }

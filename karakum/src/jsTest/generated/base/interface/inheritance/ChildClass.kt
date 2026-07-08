@@ -4,7 +4,7 @@
 
 package sandbox.base.`interface`.inheritance
 
-external class ChildClass : ParentClass, ChildInterface {
+open external class ChildClass : ParentClass, ChildInterface {
 override var firstField: String
 override var secondField: Double
 override var thirdField: String

@@ -4,7 +4,7 @@
 
 package sandbox.top.level.typeLiteral
 
-external class MyClassWithTypeLiteral {
+open external class MyClassWithTypeLiteral {
 constructor (options: MyClassWithTypeLiteralOptions)
-fun method(options: MyClassWithTypeLiteralMethodOptions): String
+open fun method(options: MyClassWithTypeLiteralMethodOptions): String
 }

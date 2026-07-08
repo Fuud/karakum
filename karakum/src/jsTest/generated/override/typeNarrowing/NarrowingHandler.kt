@@ -4,7 +4,7 @@
 
 package sandbox.override.typeNarrowing
 
-external class NarrowingHandler : IHandler {
+open external class NarrowingHandler : IHandler {
 override fun handle(data: Any?): Unit
-fun handle(data: js.buffer.ArrayBuffer): Unit
+open fun handle(data: js.buffer.ArrayBuffer): Unit
 }

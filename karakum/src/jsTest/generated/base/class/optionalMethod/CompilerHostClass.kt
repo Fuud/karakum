@@ -4,6 +4,6 @@
 
 package sandbox.base.`class`.optionalMethod
 
-external class CompilerHostClass {
-val getModuleResolutionCache: (() -> String?)?
+open external class CompilerHostClass {
+open val getModuleResolutionCache: (() -> String?)?
 }

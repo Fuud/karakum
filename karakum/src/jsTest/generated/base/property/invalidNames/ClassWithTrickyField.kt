@@ -4,29 +4,29 @@
 
 package sandbox.base.property.invalidNames
 
-external class ClassWithTrickyField {
-var `_`: Boolean
-var `__`: Boolean
-var `___`: Boolean
-var _hasFetcherDoneAnything: Boolean?
-var ` _hasFetcherDoneAnything `: Boolean?
-var `123test`: Boolean?
+open external class ClassWithTrickyField {
+open var `_`: Boolean
+open var `__`: Boolean
+open var `___`: Boolean
+open var _hasFetcherDoneAnything: Boolean?
+open var ` _hasFetcherDoneAnything `: Boolean?
+open var `123test`: Boolean?
 @JsName("kebab-case-test")
-var kebabCaseTest: Boolean?
-var `123-invalid-kebab-case-test`: Boolean?
-var `42`: Boolean
-fun _hasFetcherDoneAnything2(): Boolean
-fun ` _hasFetcherDoneAnything2 `(): Boolean
-fun `123test2`(): Boolean
+open var kebabCaseTest: Boolean?
+open var `123-invalid-kebab-case-test`: Boolean?
+open var `42`: Boolean
+open fun _hasFetcherDoneAnything2(): Boolean
+open fun ` _hasFetcherDoneAnything2 `(): Boolean
+open fun `123test2`(): Boolean
 @JsName("kebab-case-test2")
-fun kebabCaseTest2(): Boolean
-fun `123-invalid-kebab-case-test2`(): Boolean
-fun `43`(): Boolean
-var _hasFetcherDoneAnything3: Boolean
-var ` _hasFetcherDoneAnything3 `: Boolean
-var `123test3`: Boolean
+open fun kebabCaseTest2(): Boolean
+open fun `123-invalid-kebab-case-test2`(): Boolean
+open fun `43`(): Boolean
+open var _hasFetcherDoneAnything3: Boolean
+open var ` _hasFetcherDoneAnything3 `: Boolean
+open var `123test3`: Boolean
 @JsName("kebab-case-test3")
-var kebabCaseTest3: Boolean
-var `123-invalid-kebab-case-test3`: Boolean
-var `44`: Boolean
+open var kebabCaseTest3: Boolean
+open var `123-invalid-kebab-case-test3`: Boolean
+open var `44`: Boolean
 }

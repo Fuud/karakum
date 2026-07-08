@@ -4,7 +4,7 @@
 
 package sandbox.base.typeLiteral.functionParameter
 
-external class MyClassWithLiteralInParameter {
+open external class MyClassWithLiteralInParameter {
 constructor (options: MyClassWithLiteralInParameterOptions)
-fun method(options: MyClassWithLiteralInParameterMethodOptions): String
+open fun method(options: MyClassWithLiteralInParameterMethodOptions): String
 }

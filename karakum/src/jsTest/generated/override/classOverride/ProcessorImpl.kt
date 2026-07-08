@@ -4,6 +4,6 @@
 
 package sandbox.override.classOverride
 
-external class ProcessorImpl : IProcessor {
+open external class ProcessorImpl : IProcessor {
 override fun process(data: String): Unit
 }

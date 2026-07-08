@@ -4,7 +4,7 @@
 
 package sandbox.override.typeNarrowing
 
-external class NarrowingEmitter : IEventEmitter {
+open external class NarrowingEmitter : IEventEmitter {
 override var onData: (data: Any?) -> Unit
 @JsName("onData")
 var onDataNarrowed: (data: js.buffer.ArrayBuffer) -> Unit

@@ -4,6 +4,6 @@
 
 package sandbox.base.declarationMerging.heritageClauses
 
-external class ExampleClassWithParent : ExampleParentForClass, ExampleParentForInterface {
+open external class ExampleClassWithParent : ExampleParentForClass, ExampleParentForInterface {
 
 }

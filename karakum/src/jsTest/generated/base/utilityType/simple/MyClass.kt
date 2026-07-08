@@ -4,6 +4,6 @@
 
 package sandbox.base.utilityType.simple
 
-external class MyClass {
-fun method(opts: MyClassMethodOpts): Unit
+open external class MyClass {
+open fun method(opts: MyClassMethodOpts): Unit
 }

@@ -4,18 +4,18 @@
 
 package sandbox.base.property.doubleOptionality
 
-external class AgnosticBaseRouteClass {
-var handle1: Any?
-var handle2: Any?
-var handle3: String?
-var handle4: Nothing?
-var handle5: Nothing?
-var handle6: Any? /* type isn't declared */
-var handle7: String?
-var handle8: String?
-var handle9: SomeNullableType
-var handle10: SomeNullableType
-var handle11: SomeUnionNullableType
-var handle12: SomeUnionNullableType
-var handle13: Any?
+open external class AgnosticBaseRouteClass {
+open var handle1: Any?
+open var handle2: Any?
+open var handle3: String?
+open var handle4: Nothing?
+open var handle5: Nothing?
+open var handle6: Any? /* type isn't declared */
+open var handle7: String?
+open var handle8: String?
+open var handle9: SomeNullableType
+open var handle10: SomeNullableType
+open var handle11: SomeUnionNullableType
+open var handle12: SomeUnionNullableType
+open var handle13: Any?
 }

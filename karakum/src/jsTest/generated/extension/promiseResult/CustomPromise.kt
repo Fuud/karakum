@@ -2,6 +2,6 @@
 
 package extension.promiseResult
 
-external class CustomPromise : js.promise.Promise<Any?> {
+open external class CustomPromise : js.promise.Promise<Any?> {
 
 }

@@ -4,11 +4,11 @@
 
 package sandbox.base.`class`.simple
 
-external class SimpleClass {
-var firstField: String
-var secondField: Double
-fun firstMethod(firstParam: String, secondParam: Double): Unit
-fun secondMethod(firstParam: String, secondParam: Double): Boolean
+open external class SimpleClass {
+open var firstField: String
+open var secondField: Double
+open fun firstMethod(firstParam: String, secondParam: Double): Unit
+open fun secondMethod(firstParam: String, secondParam: Double): Boolean
 companion object {
 var firstStaticField: String
 var secondStaticField: Double

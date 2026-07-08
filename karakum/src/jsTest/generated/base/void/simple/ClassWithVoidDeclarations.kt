@@ -4,7 +4,7 @@
 
 package sandbox.base.void.simple
 
-external class ClassWithVoidDeclarations {
-fun someMethod(): Unit
-val someValue: js.core.Void
+open external class ClassWithVoidDeclarations {
+open fun someMethod(): Unit
+open val someValue: js.core.Void
 }

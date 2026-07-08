@@ -4,6 +4,6 @@
 
 package default.provider
 
-external class ConversationOption {
-var label: String
+open external class ConversationOption {
+open var label: String
 }
