@@ -17,5 +17,6 @@ val convertVariableStatement = createPlugin plugin@{ node, context, render ->
 
     node.declarationList.declarations.asArray()
         .map { render(it) }
+        .filter { it.isNotEmpty() }
         .joinToString(separator = "\n")
 }

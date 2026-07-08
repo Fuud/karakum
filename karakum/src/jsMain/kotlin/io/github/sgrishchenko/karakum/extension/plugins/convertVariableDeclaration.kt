@@ -4,9 +4,27 @@ import io.github.sgrishchenko.karakum.configuration.NamespaceStrategy
 import io.github.sgrishchenko.karakum.configuration.`package`
 import io.github.sgrishchenko.karakum.extension.createPlugin
 import io.github.sgrishchenko.karakum.extension.ifPresent
+import io.github.sgrishchenko.karakum.util.getSourceFileOrNull
 import js.numbers.contains
 import typescript.NodeFlags
+import typescript.asArray
+import typescript.isExportAssignment
+import typescript.isIdentifier
 import typescript.isVariableDeclaration
+
+private fun isDefaultExportVariable(node: typescript.VariableDeclaration, context: io.github.sgrishchenko.karakum.extension.Context): Boolean {
+    val name = node.name
+    if (!isIdentifier(name)) return false
+
+    val sourceFile = node.getSourceFileOrNull() ?: return false
+
+    return sourceFile.statements.asArray().any { statement ->
+        if (!isExportAssignment(statement)) return@any false
+        if (statement.isExportEquals == true) return@any false
+        val expression = statement.expression
+        isIdentifier(expression) && expression.text == name.text
+    }
+}
 
 val convertVariableDeclaration = createPlugin plugin@{ node, context, render ->
     if (!isVariableDeclaration(node)) return@plugin null
@@ -16,6 +34,11 @@ val convertVariableDeclaration = createPlugin plugin@{ node, context, render ->
 
     val declarationMergingService = context.lookupService(declarationMergingServiceKey)
     if (declarationMergingService?.isMergedWithInterface(node) == true) return@plugin ""
+
+    if (isDefaultExportVariable(node, context)) {
+        node.initializer?.let { checkCoverageService?.cover(it) }
+        return@plugin ""
+    }
 
     // skip initializer
     node.initializer?.let { checkCoverageService?.cover(it) }
