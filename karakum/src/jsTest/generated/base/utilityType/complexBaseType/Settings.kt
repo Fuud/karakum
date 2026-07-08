@@ -7,5 +7,5 @@ package sandbox.base.utilityType.complexBaseType
 
 // NonNullable with indexed access — resolves to anonymous type
 external interface Settings {
-var handler: (Temp1)?
+var handler: (Temp6)?
 }

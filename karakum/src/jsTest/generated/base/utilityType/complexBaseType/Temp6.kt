@@ -2,7 +2,7 @@
 
 package sandbox.base.utilityType.complexBaseType
 
-external interface Temp2 {
+external interface Temp6 {
 var onEvent: (name: String) -> Unit
 var priority: Double
 }

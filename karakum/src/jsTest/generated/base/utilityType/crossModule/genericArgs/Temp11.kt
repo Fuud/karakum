@@ -2,6 +2,6 @@
 
 package sandbox.base.utilityType.crossModule.genericArgs
 
-external interface Temp6 {
+external interface Temp11 {
 var value: Any?
 }

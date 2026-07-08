@@ -5,4 +5,4 @@
 
 package sandbox.base.utilityType.complexBaseType
 
-external fun getHandler(): Temp2
+external fun getHandler(): Temp7

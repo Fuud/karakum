@@ -5,6 +5,7 @@ import io.github.sgrishchenko.karakum.extension.Render
 import io.github.sgrishchenko.karakum.extension.ifPresent
 import io.github.sgrishchenko.karakum.extension.isBuiltin
 import io.github.sgrishchenko.karakum.extension.plugins.typeScriptServiceKey
+import io.github.sgrishchenko.karakum.util.getSourceFileOrNull
 import js.numbers.contains
 import typescript.*
 
@@ -65,9 +66,35 @@ private suspend fun resolveDefaultTypeArguments(
 
     if (typeParameters == null || explicitCount >= typeParameters.size) return emptyList()
 
+    registerDefaultTypeArgumentImports(node, typeParameters.asList(), explicitCount, context)
+
     return typeParameters.asList().drop(explicitCount)
         .mapNotNull { typeParam -> typeParam.default?.let { render(it) } }
         .filter { it.isNotEmpty() }
+}
+
+@Suppress("UNCHECKED_AS_TO_EXTERNAL_INTERFACE")
+private fun registerDefaultTypeArgumentImports(
+    node: NodeWithTypeArguments,
+    typeParameters: List<TypeParameterDeclaration>,
+    explicitCount: Int,
+    context: Context,
+) {
+    val typeScriptService = context.lookupService(typeScriptServiceKey) ?: return
+    val importInfoService = context.lookupService(importInfoServiceKey) ?: return
+    val typeChecker = typeScriptService.program.getTypeChecker()
+
+    val sourceFileName = node.getSourceFileOrNull()?.fileName ?: return
+    val namespace = typeScriptService.findClosestNamespace(node as Node)
+
+    for (typeParam in typeParameters.drop(explicitCount)) {
+        val defaultNode = typeParam.default ?: continue
+        val defaultType = typeChecker.getTypeAtLocation(defaultNode)
+        val gatheredImports = gatherImportsFromTypeReference(defaultType, sourceFileName, namespace, context)
+        for (importStatement in gatheredImports) {
+            importInfoService.addDynamicImport(sourceFileName, namespace, importStatement)
+        }
+    }
 }
 
 private fun extractIdentifier(node: NodeWithTypeArguments): Identifier? {

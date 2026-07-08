@@ -172,6 +172,80 @@ private fun resolveNodeModulesImport(
 }
 
 @Suppress("UNCHECKED_AS_TO_EXTERNAL_INTERFACE", "UNCHECKED_CAST_TO_EXTERNAL_INTERFACE")
+private fun walkTypeAndGatherImports(
+    type: Type,
+    typeChecker: TypeChecker,
+    consumerPackage: String,
+    context: Context,
+    imports: MutableList<String>,
+    visited: MutableSet<Type>,
+) {
+    if (type in visited) return
+    visited.add(type)
+
+    if (primitiveFlags.any { it in type.flags }) return
+
+    if (TypeFlags.Union in type.flags) {
+        val unionType = type.unsafeCast<UnionType>()
+        unionType.types.asList().forEach { walkTypeAndGatherImports(it, typeChecker, consumerPackage, context, imports, visited) }
+        return
+    }
+
+    if (TypeFlags.Intersection in type.flags) {
+        val intersectionType = type.unsafeCast<IntersectionType>()
+        intersectionType.types.asList().forEach { walkTypeAndGatherImports(it, typeChecker, consumerPackage, context, imports, visited) }
+        return
+    }
+
+    // Walk type arguments of instantiated generic types (e.g. IEffect<IEffectDrawParams, OffscreenRenderingContext>)
+    val objectType = type.asDynamic().objectFlags
+    if (objectType != null && ObjectFlags.Reference in objectType.unsafeCast<ObjectFlags>()) {
+        val typeRef = type.unsafeCast<TypeReference>()
+        val typeArgs = typeRef.typeArguments
+        if (typeArgs != null) {
+            typeArgs.asList().forEach { walkTypeAndGatherImports(it, typeChecker, consumerPackage, context, imports, visited) }
+        }
+    }
+
+    val symbol = type.symbol
+    if (symbol == null) return
+
+    var resolvedSymbol = symbol
+    if (SymbolFlags.Alias in resolvedSymbol.flags) {
+        resolvedSymbol = typeChecker.getAliasedSymbol(resolvedSymbol)
+    }
+
+    val declaration = resolvedSymbol.valueDeclaration
+        ?: resolvedSymbol.declarations?.firstOrNull()
+
+    if (declaration != null) {
+        val declNode = declaration.unsafeCast<Node>()
+
+        val typeName = resolveExportedDeclarationName(declNode) ?: return
+
+        val declSourceFileName = declNode.getSourceFileOrNull()?.fileName ?: return
+
+        if (isBuiltinSourceFile(declSourceFileName)) return
+
+        if (isInNodeModules(declSourceFileName)) {
+            val resolved = resolveNodeModulesImport(declSourceFileName, typeName, context)
+            if (resolved != null) {
+                imports.add(resolved)
+            }
+        } else {
+            val typeScriptService = context.lookupService(typeScriptServiceKey)!!
+            val declNamespace = typeScriptService.findClosestNamespace(declNode)
+            val declarationPackage = computePackage(declSourceFileName, declNamespace, context)
+
+            if (declarationPackage != consumerPackage) {
+                val fqn = resolveKotlinFqn(declNode, typeName, context)
+                imports.add("import $fqn")
+            }
+        }
+    }
+}
+
+@Suppress("UNCHECKED_AS_TO_EXTERNAL_INTERFACE", "UNCHECKED_CAST_TO_EXTERNAL_INTERFACE")
 fun gatherImportsFromType(
     type: Type,
     consumerSourceFileName: String,
@@ -186,77 +260,29 @@ fun gatherImportsFromType(
     val imports = mutableListOf<String>()
     val visited = mutableSetOf<Type>()
 
-    fun walkType(type: Type) {
-        if (type in visited) return
-        visited.add(type)
-
-        if (primitiveFlags.any { it in type.flags }) return
-
-        if (TypeFlags.Union in type.flags) {
-            val unionType = type.unsafeCast<UnionType>()
-            unionType.types.asList().forEach { walkType(it) }
-            return
-        }
-
-        if (TypeFlags.Intersection in type.flags) {
-            val intersectionType = type.unsafeCast<IntersectionType>()
-            intersectionType.types.asList().forEach { walkType(it) }
-            return
-        }
-
-        // Walk type arguments of instantiated generic types (e.g. IEffect<IEffectDrawParams, OffscreenRenderingContext>)
-        val objectType = type.asDynamic().objectFlags
-        if (objectType != null && ObjectFlags.Reference in objectType.unsafeCast<ObjectFlags>()) {
-            val typeRef = type.unsafeCast<TypeReference>()
-            val typeArgs = typeRef.typeArguments
-            if (typeArgs != null) {
-                typeArgs.asList().forEach { walkType(it) }
-            }
-        }
-
-        val symbol = type.symbol
-        if (symbol == null) return
-
-        var resolvedSymbol = symbol
-        if (SymbolFlags.Alias in resolvedSymbol.flags) {
-            resolvedSymbol = typeChecker.getAliasedSymbol(resolvedSymbol)
-        }
-
-        val declaration = resolvedSymbol.valueDeclaration
-            ?: resolvedSymbol.declarations?.firstOrNull()
-
-        if (declaration != null) {
-            val declNode = declaration.unsafeCast<Node>()
-
-            // Only import type-level declarations (interfaces, classes, type aliases, enums).
-            // Skip values (variables, functions) — they can't be expressed as Kotlin imports.
-            val typeName = resolveExportedDeclarationName(declNode) ?: return
-
-            val declSourceFileName = declNode.getSourceFileOrNull()?.fileName ?: return
-
-            if (isBuiltinSourceFile(declSourceFileName)) return
-
-            if (isInNodeModules(declSourceFileName)) {
-                val resolved = resolveNodeModulesImport(declSourceFileName, typeName, context)
-                if (resolved != null) {
-                    imports.add(resolved)
-                }
-            } else {
-                val declNamespace = typeScriptService.findClosestNamespace(declNode)
-                val declarationPackage = computePackage(declSourceFileName, declNamespace, context)
-
-                if (declarationPackage != consumerPackage) {
-                    val fqn = resolveKotlinFqn(declNode, typeName, context)
-                    imports.add("import $fqn")
-                }
-            }
-        }
-    }
-
     type.getPropertiesAsSymbols().forEach { prop ->
         val propType = typeChecker.getPropertyType(type, prop)
-        walkType(propType)
+        walkTypeAndGatherImports(propType, typeChecker, consumerPackage, context, imports, visited)
     }
+
+    return imports.distinct()
+}
+
+@Suppress("UNCHECKED_AS_TO_EXTERNAL_INTERFACE", "UNCHECKED_CAST_TO_EXTERNAL_INTERFACE")
+fun gatherImportsFromTypeReference(
+    type: Type,
+    consumerSourceFileName: String,
+    consumerNamespace: ModuleDeclaration?,
+    context: Context,
+): List<String> {
+    val typeScriptService = context.lookupService(typeScriptServiceKey) ?: return emptyList()
+    val typeChecker = typeScriptService.program.getTypeChecker()
+
+    val consumerPackage = computePackage(consumerSourceFileName, consumerNamespace, context)
+    val imports = mutableListOf<String>()
+    val visited = mutableSetOf<Type>()
+
+    walkTypeAndGatherImports(type, typeChecker, consumerPackage, context, imports, visited)
 
     return imports.distinct()
 }

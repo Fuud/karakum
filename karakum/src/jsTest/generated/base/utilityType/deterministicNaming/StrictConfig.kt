@@ -6,6 +6,6 @@
 package sandbox.base.utilityType.deterministicNaming
 
 // Nested utility type
-external interface StrictConfig : Temp3 {
+external interface StrictConfig : Temp8 {
 
 }

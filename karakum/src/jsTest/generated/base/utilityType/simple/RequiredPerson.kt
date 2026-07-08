@@ -5,6 +5,6 @@
 
 package sandbox.base.utilityType.simple
 
-external interface RequiredPerson : Temp5 {
+external interface RequiredPerson : Temp10 {
 
 }

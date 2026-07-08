@@ -2,7 +2,7 @@
 
 package sandbox.base.utilityType.deterministicNaming
 
-external interface Temp3 {
+external interface Temp8 {
 var width: Double
 var height: Double
 var title: String

@@ -51,6 +51,7 @@ val convertPropertyDeclaration = createPlugin plugin@{ node, context, render ->
     val narrowingInfo = overrideDetectionService?.getNarrowing(node)
 
     if (narrowingInfo != null && narrowingInfo.basePropertyTypeNode != null) {
+        registerBaseTypeImports(node, listOf(narrowingInfo.basePropertyTypeNode), context)
         val baseType = renderNullable(narrowingInfo.basePropertyTypeNode, narrowingInfo.baseIsOptional, context, render)
         val narrowedJsName = annotation.takeIf { it.isNotEmpty() } ?: "@JsName(\"$rawName\")"
         val narrowedName = escapeIdentifier("${rawName}Narrowed")

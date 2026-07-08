@@ -4,9 +4,14 @@ import io.github.sgrishchenko.karakum.extension.createPlugin
 import io.github.sgrishchenko.karakum.extension.ifPresent
 import io.github.sgrishchenko.karakum.extension.renderNullable
 import io.github.sgrishchenko.karakum.util.escapeIdentifier
+import typescript.MethodSignature
+import typescript.Node
+import typescript.TypeNode
 import typescript.asArray
 import typescript.isIdentifier
+import typescript.isMappedTypeNode
 import typescript.isMethodSignature
+import typescript.isTypeLiteralNode
 
 val convertMethodSignature = createPlugin plugin@{ node, context, render ->
     if (!isMethodSignature(node)) return@plugin null
@@ -28,10 +33,39 @@ val convertMethodSignature = createPlugin plugin@{ node, context, render ->
 
     val returnType = node.type?.let{ render(it) }
 
+    val overrideDetectionService = context.lookupService(overrideDetectionServiceKey)
+
+    // Eagerly resolve inheritance modifier to trigger detectOverrideModifier
+    // which registers CompatibleOverrideInfo / NarrowingInfo as side effects
+    inheritanceModifierService?.resolveSignatureInheritanceModifier(
+        node, emptyArray(), context,
+    )
+
+    val narrowingInfo = overrideDetectionService?.getNarrowing(node)
+    val compatibleOverrideInfo = overrideDetectionService?.getCompatibleOverride(node)
+
+    if (narrowingInfo != null) {
+        registerBaseTypeImports(node, narrowingInfo.baseParameterTypeNodes.toList(), context)
+    }
+
+    val typeOverrides = buildTypeOverrides(node, compatibleOverrideInfo)
+    if (typeOverrides.isNotEmpty()) {
+        registerTypeOverrideImports(node, typeOverrides, context)
+
+        val checkCoverageService2 = context.lookupService(checkCoverageServiceKey)
+        node.parameters.asArray().forEachIndexed { i, param ->
+            val paramType = param.type
+            if (i in typeOverrides && paramType != null && isAnonymousTypeNode(paramType)) {
+                checkCoverageService2?.deepCover(paramType)
+            }
+        }
+    }
+
     if (node.questionToken != null) {
         return@plugin convertParameterDeclarations(
             node, context, render,
             ParameterDeclarationStrategy.lambda,
+            typeOverrides = typeOverrides,
         ) { parameters, signature ->
             val inheritanceModifier =
                 inheritanceModifierService?.resolveSignatureInheritanceModifier(node, signature, context)
@@ -51,14 +85,12 @@ val convertMethodSignature = createPlugin plugin@{ node, context, render ->
     convertParameterDeclarations(
         node, context, render,
         ParameterDeclarationStrategy.function,
+        typeOverrides = typeOverrides,
     ) { parameters, signature ->
         val inheritanceModifier =
             inheritanceModifierService?.resolveSignatureInheritanceModifier(node, signature, context)
 
         val result = "${ifPresent(annotation) { "${it}\n" }}${ifPresent(inheritanceModifier) { "$it "}}fun ${ifPresent(typeParameters) { "<${it}> " }}${name}(${parameters})${ifPresent(returnType) { ": $it" }}"
-
-        val overrideDetectionService = context.lookupService(overrideDetectionServiceKey)
-        val narrowingInfo = overrideDetectionService?.getNarrowing(node)
 
         if (narrowingInfo != null) {
             val baseParams = node.parameters.asArray().mapIndexed { i, param ->
@@ -78,3 +110,23 @@ val convertMethodSignature = createPlugin plugin@{ node, context, render ->
         }
     }
 }
+
+private fun buildTypeOverrides(
+    node: MethodSignature,
+    compatibleOverrideInfo: CompatibleOverrideInfo?,
+): Map<Int, TypeNode> {
+    if (compatibleOverrideInfo == null) return emptyMap()
+    val params = node.parameters.asArray()
+    val overrides = mutableMapOf<Int, TypeNode>()
+    for (i in params.indices) {
+        val nodeParamType = params[i].type
+        val baseParamType = compatibleOverrideInfo.baseParameterTypeNodes.getOrNull(i)
+        if (nodeParamType != null && isAnonymousTypeNode(nodeParamType) && baseParamType != null) {
+            overrides[i] = baseParamType
+        }
+    }
+    return overrides
+}
+
+private fun isAnonymousTypeNode(node: Node): Boolean =
+    isTypeLiteralNode(node) || isMappedTypeNode(node) || isInheritedTypeLiteral(node)

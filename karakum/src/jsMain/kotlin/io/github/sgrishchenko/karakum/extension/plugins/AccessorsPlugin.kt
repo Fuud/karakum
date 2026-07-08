@@ -126,6 +126,7 @@ ${ifPresent(annotation) { "${it}\n" }}${ifPresent(inheritanceModifier) { "$it "}
             val narrowingInfo = overrideDetectionService?.getNarrowing(node)
 
             return if (narrowingInfo != null && narrowingInfo.basePropertyTypeNode != null) {
+                registerBaseTypeImports(node, listOf(narrowingInfo.basePropertyTypeNode), context)
                 val baseType = renderNullable(narrowingInfo.basePropertyTypeNode, false, context, next)
                 val narrowedJsName = annotation.takeIf { it.isNotEmpty() } ?: "@JsName(\"$rawName\")"
                 val narrowedName = escapeIdentifier("${rawName}Narrowed")

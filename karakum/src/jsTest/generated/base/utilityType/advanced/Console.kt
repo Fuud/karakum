@@ -1,11 +1,12 @@
 // Automatically generated - do not modify!
 
 @file:JsModule("sandbox-base/utilityType/advanced")
+@file:JsNonModule
 
 package sandbox.base.utilityType.advanced
 
 // InstanceType: extract instance type of a constructor
-external class Console {
+open external class Console {
 /**
      * The **`console.assert()`** static method writes an error message to the console if the assertion is false. If the assertion is true, nothing happens.
      *
@@ -84,7 +85,7 @@ fun info(vararg data: Any?): Unit
      * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/log_static)
      */
 fun log(vararg data: Any?): Unit
-fun log(msg: String): Unit
+open fun log(msg: String): Unit
 /**
      * The **`console.table()`** static method displays tabular data as a table.
      *

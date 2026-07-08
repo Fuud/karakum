@@ -2,4 +2,4 @@
 
 package sandbox.base.utilityType.crossModule.genericArgs
 
-typealias MyConfig = Temp6
+typealias MyConfig = Temp11

@@ -6,6 +6,8 @@ import io.github.sgrishchenko.karakum.extension.plugins.AnnotationPlugin
 import io.github.sgrishchenko.karakum.extension.plugins.CommentPlugin
 import io.github.sgrishchenko.karakum.extension.plugins.detectOpenModifier
 import io.github.sgrishchenko.karakum.extension.plugins.detectOverrideModifier
+import io.github.sgrishchenko.karakum.extension.plugins.importInfoServiceKey
+import io.github.sgrishchenko.karakum.extension.plugins.typeScriptServiceKey
 import io.github.sgrishchenko.karakum.structure.TargetFile
 import io.github.sgrishchenko.karakum.structure.createTopLevelMatcher
 import io.github.sgrishchenko.karakum.structure.import.collectImportInfo
@@ -14,6 +16,7 @@ import io.github.sgrishchenko.karakum.structure.`package`.packageToOutputFileNam
 import io.github.sgrishchenko.karakum.structure.prepareStructure
 import io.github.sgrishchenko.karakum.structure.resolveConflicts
 import io.github.sgrishchenko.karakum.structure.sourceFile.collectSourceFileInfo
+import io.github.sgrishchenko.karakum.util.getSourceFileOrNull
 import io.github.sgrishchenko.karakum.util.traverse
 import js.array.ReadonlyArray
 import js.coroutines.promise
@@ -168,6 +171,9 @@ private suspend fun generate(mutableConfiguration: MutableConfiguration) {
 
     val render = createRender(context, converterPlugins.toTypedArray())
 
+    val importInfoService = context.lookupService(importInfoServiceKey)
+    val typeScriptService = context.lookupService(typeScriptServiceKey)
+
     val targetFiles = mutableListOf<TargetFile>()
 
     val structureMeta = mutableSetOf<String>()
@@ -187,6 +193,20 @@ private suspend fun generate(mutableConfiguration: MutableConfiguration) {
             .map { render(it) }
             .joinToString(separator = "\n\n")
 
+        val resolvedImports = if (importInfoService != null && typeScriptService != null) {
+            val firstNode = item.nodes.firstOrNull()
+            val sourceFileName = firstNode?.getSourceFileOrNull()?.fileName
+            val namespace = firstNode?.let { typeScriptService.findClosestNamespace(it) }
+            if (sourceFileName != null) {
+                val dynamicImports = importInfoService.resolveDynamicImports(sourceFileName, namespace)
+                (item.imports + dynamicImports).distinct().toTypedArray()
+            } else {
+                item.imports
+            }
+        } else {
+            item.imports
+        }
+
         if (ignoreOutput.all { pattern -> !path.matchesGlob(targetFileName, pattern) }) {
             targetFiles += TargetFile(
                 fileName = item.fileName,
@@ -194,7 +214,7 @@ private suspend fun generate(mutableConfiguration: MutableConfiguration) {
                 moduleName = item.moduleName,
                 qualifier = item.qualifier,
                 hasRuntime = item.hasRuntime,
-                imports = item.imports,
+                imports = resolvedImports,
                 body = body,
             )
         }

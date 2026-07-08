@@ -32,6 +32,11 @@ class ImportInfoService @JsExport.Ignore constructor(
         return (staticImports + dynImports).toList().distinct().toTypedArray()
     }
 
+    fun resolveDynamicImports(sourceFileName: String, node: ModuleDeclaration?): ReadonlyArray<String> {
+        val key = Pair<String?, ModuleDeclaration?>(sourceFileName, node)
+        return (dynamicImports[key] ?: emptySet()).toTypedArray()
+    }
+
     fun addDynamicImport(sourceFileName: String, namespace: ModuleDeclaration?, importStatement: String) {
         val staticImports = if (namespace != null) {
             importInfo[namespace] ?: emptyArray()

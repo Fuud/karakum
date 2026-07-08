@@ -16,14 +16,25 @@ class NarrowingInfo(
     val baseIsOptional: Boolean,
 )
 
+class CompatibleOverrideInfo(
+    val baseParameterTypeNodes: Array<TypeNode?>,
+)
+
 class OverrideDetectionService {
     private val narrowings = mutableMapOf<Node, NarrowingInfo>()
+    private val compatibleOverrides = mutableMapOf<Node, CompatibleOverrideInfo>()
 
     fun registerNarrowing(node: Node, info: NarrowingInfo) {
         narrowings[node] = info
     }
 
     fun getNarrowing(node: Node): NarrowingInfo? = narrowings[node]
+
+    fun registerCompatibleOverride(node: Node, info: CompatibleOverrideInfo) {
+        compatibleOverrides[node] = info
+    }
+
+    fun getCompatibleOverride(node: Node): CompatibleOverrideInfo? = compatibleOverrides[node]
 }
 
 class OverrideDetectionPlugin : Plugin {

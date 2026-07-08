@@ -2,7 +2,7 @@
 
 package sandbox.base.utilityType.complexBaseType
 
-external interface Temp0 {
+external interface Temp5 {
 var debugMessage: (msg: String) -> Unit
 var browser: String
 var DebugMessageType: Double
