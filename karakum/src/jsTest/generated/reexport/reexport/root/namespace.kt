@@ -1,6 +1,6 @@
 // Automatically generated - do not modify!
 
-@file:JsModule("casing-provider")
+@file:JsModule("reexport-root")
 @file:JsNonModule
 
-package casing.provider
+package reexport.root
