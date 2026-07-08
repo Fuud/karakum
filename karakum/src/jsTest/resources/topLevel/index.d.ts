@@ -27,3 +27,19 @@ enum MyEnum {
     FIRST,
     SECOND,
 }
+
+const enum StatusType {
+    ACTIVE = "active",
+    INACTIVE = "inactive",
+}
+
+interface ActiveItem {
+    type: StatusType.ACTIVE
+    name: string
+}
+
+interface InactiveItem {
+    type: StatusType.INACTIVE
+    name: string
+    reason: string
+}

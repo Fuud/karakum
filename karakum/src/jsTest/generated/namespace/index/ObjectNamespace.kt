@@ -15,6 +15,12 @@ companion object
 interface ObjectNamespaceInterface {
 var someProperty: ObjectNamespaceInterfaceSomeProperty
 }
+interface BaseNotification {
+var type: String
+}
+interface DerivedNotification : ObjectNamespace.BaseNotification {
+var message: String
+}
 object InnerObjectNamespace {
 val innerObjectNamespaceValue: Double
 sealed interface innerObjectNamespaceUnion {
