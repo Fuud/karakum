@@ -207,6 +207,45 @@ private fun walkTypeAndGatherImports(
         }
     }
 
+    @Suppress("UNCHECKED_AS_TO_EXTERNAL_INTERFACE")
+    val aliasSymbol = type.asDynamic().aliasSymbol
+    if (aliasSymbol != null) {
+        var resolvedAlias = aliasSymbol.unsafeCast<Symbol>()
+        if (SymbolFlags.Alias in resolvedAlias.flags) {
+            resolvedAlias = typeChecker.getAliasedSymbol(resolvedAlias)
+        }
+
+        val aliasDeclaration = resolvedAlias.valueDeclaration
+            ?: resolvedAlias.declarations?.firstOrNull()
+
+        if (aliasDeclaration != null) {
+            val aliasDeclNode = aliasDeclaration.unsafeCast<Node>()
+            val typeName = resolveExportedDeclarationName(aliasDeclNode)
+            if (typeName != null) {
+                val declSourceFileName = aliasDeclNode.getSourceFileOrNull()?.fileName
+                if (declSourceFileName != null && !isBuiltinSourceFile(declSourceFileName)) {
+                    if (isInNodeModules(declSourceFileName)) {
+                        val resolved = resolveNodeModulesImport(declSourceFileName, typeName, context)
+                        if (resolved != null) {
+                            imports.add(resolved)
+                        }
+                    } else {
+                        val typeScriptService = context.lookupService(typeScriptServiceKey)!!
+                        val declNamespace = typeScriptService.findClosestNamespace(aliasDeclNode)
+                        val declarationPackage = computePackage(declSourceFileName, declNamespace, context)
+
+                        if (declarationPackage != consumerPackage) {
+                            val fqn = resolveKotlinFqn(aliasDeclNode, typeName, context)
+                            imports.add("import $fqn")
+                        }
+                    }
+                }
+            }
+        }
+
+        return
+    }
+
     val symbol = type.symbol
     if (symbol == null) return
 
