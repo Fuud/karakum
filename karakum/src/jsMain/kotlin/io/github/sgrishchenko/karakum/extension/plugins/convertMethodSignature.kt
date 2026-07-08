@@ -97,7 +97,7 @@ val convertMethodSignature = createPlugin plugin@{ node, context, render ->
                 val paramName = param.name.let { name -> if (isIdentifier(name)) escapeIdentifier(name.text) else "param$i" }
                 val baseType = narrowingInfo.baseParameterTypeNodes.getOrNull(i)
                 val renderedBaseType = if (baseType != null) {
-                    renderNullable(baseType, param.questionToken != null, context, render)
+                    renderNullable(baseType, false, context, render)
                 } else {
                     "Any?"
                 }
