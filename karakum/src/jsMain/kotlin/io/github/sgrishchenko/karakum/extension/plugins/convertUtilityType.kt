@@ -60,8 +60,9 @@ private suspend fun resolveAndRender(node: Node, context: Context, render: Rende
 
     val resolvedType = typeScriptService?.resolveType(
         node.unsafeCast<typescript.TypeNode>(),
-        context,
-        NodeBuilderFlags.NoTruncation + NodeBuilderFlags.InTypeAlias,
+        context = context,
+        flags = NodeBuilderFlags.NoTruncation + NodeBuilderFlags.InTypeAlias,
+        walkProperties = true,
     )
 
     if (resolvedType == null) return "Any /* ${typeScriptService?.printNode(node)} */"

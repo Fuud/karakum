@@ -2,7 +2,6 @@ package io.github.sgrishchenko.karakum.extension.plugins
 
 import io.github.sgrishchenko.karakum.configuration.Configuration
 import io.github.sgrishchenko.karakum.extension.Context
-import io.github.sgrishchenko.karakum.structure.module.moduleNameToPackage
 import io.github.sgrishchenko.karakum.structure.`package`.applyPackageNameMapper
 import io.github.sgrishchenko.karakum.structure.`package`.createPackageName
 import io.github.sgrishchenko.karakum.structure.`package`.dirNameToPackage
@@ -25,17 +24,21 @@ private val builtinSourcePatterns = listOf(
     """^.*/typescript/lib/lib\.webworker\.importscripts\.d\.ts$""".toRegex(),
 )
 
-private fun isBuiltinSourceFile(fileName: String): Boolean {
+internal fun isBuiltinSourceFile(fileName: String): Boolean {
     return builtinSourcePatterns.any { it.matches(fileName) }
 }
 
-private fun isInNodeModules(fileName: String): Boolean {
+internal fun isInNodeModules(fileName: String): Boolean {
     return "/node_modules/" in fileName || "\\node_modules\\" in fileName
 }
 
-private val nodeModulesPattern = """[/\\]node_modules[/\\](@?[^/\\]+[/\\][^/\\]+|[^/\\]+)[/\\]""".toRegex()
+// Captures the npm package name from a node_modules path.
+// First alternative matches scoped packages: @scope/name
+// Second alternative matches unscoped packages: name
+// Subdirectories after the package name are NOT captured.
+private val nodeModulesPattern = """[/\\]node_modules[/\\](@[^/\\]+[/\\][^/\\]+|[^/\\]+)[/\\]""".toRegex()
 
-private fun extractNodeModulesName(fileName: String): String? {
+internal fun extractNodeModulesName(fileName: String): String? {
     val match = nodeModulesPattern.find(fileName) ?: return null
     val name = match.groupValues[1]
     return name.replace("\\", "/")
@@ -58,7 +61,7 @@ private fun extractNodeModulesSubDir(fileName: String): String {
     return subDirSegments.joinToString("/")
 }
 
-private fun computePackageForNodeModulesImport(
+internal fun computePackageForNodeModulesImport(
     declSourceFileName: String,
     basePackageName: String,
     configuration: Configuration,
@@ -74,57 +77,19 @@ private fun computePackageForNodeModulesImport(
     return createPackageName(mappingResult.`package`)
 }
 
-private val primitiveFlags = setOf(
-    TypeFlags.String,
-    TypeFlags.Number,
-    TypeFlags.Boolean,
-    TypeFlags.Any,
-    TypeFlags.Void,
-    TypeFlags.Null,
-    TypeFlags.Undefined,
-    TypeFlags.Never,
-    TypeFlags.BigInt,
-    TypeFlags.ESSymbol,
-)
-
 @Suppress("UNCHECKED_AS_TO_EXTERNAL_INTERFACE", "UNCHECKED_CAST_TO_EXTERNAL_INTERFACE")
-private fun Type.getPropertiesAsSymbols(): Array<Symbol> {
-    val props = this.asDynamic().getProperties()
-    if (props != null) return props.unsafeCast<Array<Symbol>>()
-
-    val apparentProps = this.asDynamic().getApparentProperties()
-    return if (apparentProps != null) apparentProps.unsafeCast<Array<Symbol>>() else emptyArray()
-}
-
-@Suppress("UNCHECKED_AS_TO_EXTERNAL_INTERFACE", "UNCHECKED_CAST_TO_EXTERNAL_INTERFACE")
-private fun TypeChecker.getPropertyType(container: Type, symbol: Symbol): Type {
-    // Use getTypeOfPropertyOfType which resolves the property type in the context
-    // of the containing type (e.g. DecoderConfig for Container<DecoderConfig>.value),
-    // unlike getTypeAtLocation(decl) which returns the unsubstituted type parameter T.
-    val propName = symbol.name
-    val contextualType = this.asDynamic().getTypeOfPropertyOfType(container, propName)
-    if (contextualType != null) return contextualType.unsafeCast<Type>()
-
-    val decl = symbol.valueDeclaration ?: symbol.declarations?.firstOrNull()
-    return if (decl != null) {
-        this.getTypeAtLocation(decl)
-    } else {
-        this.asDynamic().getDeclaredTypeOfSymbol(symbol).unsafeCast<Type>()
-    }
-}
-
-@Suppress("UNCHECKED_AS_TO_EXTERNAL_INTERFACE", "UNCHECKED_CAST_TO_EXTERNAL_INTERFACE")
-private fun resolveExportedDeclarationName(declaration: Node): String? {
+internal fun resolveExportedDeclarationName(declaration: Node): String? {
     return when {
         isInterfaceDeclaration(declaration) -> declaration.name?.text
         isClassDeclaration(declaration) -> declaration.name?.text
         isTypeAliasDeclaration(declaration) -> declaration.name?.text
         isEnumDeclaration(declaration) -> declaration.name?.text
+        isModuleDeclaration(declaration) -> (declaration.name as? Identifier)?.text
         else -> null
     }
 }
 
-private fun resolveNodeModulesImport(
+internal fun resolveNodeModulesImport(
     declSourceFileName: String,
     typeName: String,
     context: Context,
@@ -171,6 +136,36 @@ private fun resolveNodeModulesImport(
     return null
 }
 
+internal fun isModuleMappedAsSinglePackage(declSourceFileName: String, context: Context): Boolean {
+    val configurationService = context.lookupService(configurationServiceKey) ?: return false
+    val configuration = configurationService.configuration
+    val importMapper = configuration.importMapper
+
+    val moduleName = extractNodeModulesName(declSourceFileName) ?: return false
+
+    for ((moduleNamePattern, packageInfo) in importMapper) {
+        val moduleNameRegexp = moduleNamePattern.toRegex()
+        if (moduleNameRegexp.containsMatchIn(moduleName)) {
+            return packageInfo.singleOrNull() != null
+        }
+    }
+
+    return false
+}
+
+private val primitiveFlags = setOf(
+    TypeFlags.String,
+    TypeFlags.Number,
+    TypeFlags.Boolean,
+    TypeFlags.Any,
+    TypeFlags.Void,
+    TypeFlags.Null,
+    TypeFlags.Undefined,
+    TypeFlags.Never,
+    TypeFlags.BigInt,
+    TypeFlags.ESSymbol,
+)
+
 @Suppress("UNCHECKED_AS_TO_EXTERNAL_INTERFACE", "UNCHECKED_CAST_TO_EXTERNAL_INTERFACE")
 private fun walkTypeAndGatherImports(
     type: Type,
@@ -182,6 +177,55 @@ private fun walkTypeAndGatherImports(
 ) {
     if (type in visited) return
     visited.add(type)
+
+    // Check aliasSymbol before primitive flags — type aliases over primitive types
+    // (e.g. type Status = "active" | "inactive") have primitive flags but still
+    // need import registration via their aliasSymbol.
+    @Suppress("UNCHECKED_AS_TO_EXTERNAL_INTERFACE")
+    val aliasSymbol = type.asDynamic().aliasSymbol
+    if (aliasSymbol != null) {
+        var resolvedAlias = aliasSymbol.unsafeCast<Symbol>()
+        if (SymbolFlags.Alias in resolvedAlias.flags) {
+            resolvedAlias = typeChecker.getAliasedSymbol(resolvedAlias)
+        }
+
+        val aliasDeclaration = resolvedAlias.valueDeclaration
+            ?: resolvedAlias.declarations?.firstOrNull()
+
+        if (aliasDeclaration != null) {
+            val aliasDeclNode = aliasDeclaration.unsafeCast<Node>()
+            val typeName = resolveExportedDeclarationName(aliasDeclNode)
+            if (typeName != null) {
+                val declSourceFileName = aliasDeclNode.getSourceFileOrNull()?.fileName
+                if (declSourceFileName != null && !isBuiltinSourceFile(declSourceFileName)) {
+                    if (isInNodeModules(declSourceFileName)) {
+                        val typeScriptService = context.lookupService(typeScriptServiceKey)!!
+                        val isNamespaceMember = typeScriptService.findClosestNamespace(aliasDeclNode) != null
+                        if (!isNamespaceMember) {
+                            val resolved = resolveNodeModulesImport(declSourceFileName, typeName, context)
+                            if (resolved != null) {
+                                imports.add(resolved)
+                            }
+                        }
+                    } else {
+                        val typeScriptService = context.lookupService(typeScriptServiceKey)!!
+                        val declNamespace = typeScriptService.findClosestNamespace(aliasDeclNode)
+                        val declarationPackage = computePackage(declSourceFileName, declNamespace, context)
+
+                        if (declarationPackage != consumerPackage) {
+                            val isObjectMember = resolveObjectQualifiers(aliasDeclNode, context).isNotEmpty()
+                            if (!isObjectMember) {
+                                val fqn = resolveKotlinFqn(aliasDeclNode, typeName, context)
+                                imports.add("import $fqn")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return
+    }
 
     if (primitiveFlags.any { it in type.flags }) return
 
@@ -207,43 +251,23 @@ private fun walkTypeAndGatherImports(
         }
     }
 
-    @Suppress("UNCHECKED_AS_TO_EXTERNAL_INTERFACE")
-    val aliasSymbol = type.asDynamic().aliasSymbol
-    if (aliasSymbol != null) {
-        var resolvedAlias = aliasSymbol.unsafeCast<Symbol>()
-        if (SymbolFlags.Alias in resolvedAlias.flags) {
-            resolvedAlias = typeChecker.getAliasedSymbol(resolvedAlias)
-        }
+    // Walk properties of anonymous object types (e.g. type literals from
+    // utility type expansion like Parameters<typeof X>[0]).
+    // The type itself is not importable (resolveExportedDeclarationName
+    // returns null for TypeLiteralNode), but its property types may
+    // reference importable types from other packages.
+    if (objectType != null && ObjectFlags.Anonymous in objectType.unsafeCast<ObjectFlags>()) {
+        val symbol = type.symbol
+        val hasNamedDeclaration = symbol
+            ?.let { it.valueDeclaration ?: it.declarations?.firstOrNull() }
+            ?.let { resolveExportedDeclarationName(it.unsafeCast<Node>()) } != null
 
-        val aliasDeclaration = resolvedAlias.valueDeclaration
-            ?: resolvedAlias.declarations?.firstOrNull()
-
-        if (aliasDeclaration != null) {
-            val aliasDeclNode = aliasDeclaration.unsafeCast<Node>()
-            val typeName = resolveExportedDeclarationName(aliasDeclNode)
-            if (typeName != null) {
-                val declSourceFileName = aliasDeclNode.getSourceFileOrNull()?.fileName
-                if (declSourceFileName != null && !isBuiltinSourceFile(declSourceFileName)) {
-                    if (isInNodeModules(declSourceFileName)) {
-                        val resolved = resolveNodeModulesImport(declSourceFileName, typeName, context)
-                        if (resolved != null) {
-                            imports.add(resolved)
-                        }
-                    } else {
-                        val typeScriptService = context.lookupService(typeScriptServiceKey)!!
-                        val declNamespace = typeScriptService.findClosestNamespace(aliasDeclNode)
-                        val declarationPackage = computePackage(declSourceFileName, declNamespace, context)
-
-                        if (declarationPackage != consumerPackage) {
-                            val fqn = resolveKotlinFqn(aliasDeclNode, typeName, context)
-                            imports.add("import $fqn")
-                        }
-                    }
-                }
+        if (!hasNamedDeclaration) {
+            type.getPropertiesAsSymbols().forEach { prop ->
+                val propType = typeChecker.getPropertyType(type, prop)
+                walkTypeAndGatherImports(propType, typeChecker, consumerPackage, context, imports, visited)
             }
         }
-
-        return
     }
 
     val symbol = type.symbol
@@ -266,45 +290,55 @@ private fun walkTypeAndGatherImports(
 
         if (isBuiltinSourceFile(declSourceFileName)) return
 
+        val typeScriptService = context.lookupService(typeScriptServiceKey)!!
+
         if (isInNodeModules(declSourceFileName)) {
-            val resolved = resolveNodeModulesImport(declSourceFileName, typeName, context)
-            if (resolved != null) {
-                imports.add(resolved)
+            // Skip types that are members of a namespace from node_modules.
+            // They are accessed via the namespace object (e.g. Vmoji.AnimojiVersion),
+            // which is imported as a whole via registerImportForTypeNode for QualifiedName.
+            val isNamespaceMember = typeScriptService.findClosestNamespace(declNode) != null
+            if (!isNamespaceMember) {
+                val resolved = resolveNodeModulesImport(declSourceFileName, typeName, context)
+                if (resolved != null) {
+                    imports.add(resolved)
+                }
             }
         } else {
-            val typeScriptService = context.lookupService(typeScriptServiceKey)!!
             val declNamespace = typeScriptService.findClosestNamespace(declNode)
             val declarationPackage = computePackage(declSourceFileName, declNamespace, context)
 
             if (declarationPackage != consumerPackage) {
-                val fqn = resolveKotlinFqn(declNode, typeName, context)
-                imports.add("import $fqn")
+                val isObjectMember = resolveObjectQualifiers(declNode, context).isNotEmpty()
+                if (!isObjectMember) {
+                    val fqn = resolveKotlinFqn(declNode, typeName, context)
+                    imports.add("import $fqn")
+                }
             }
         }
     }
 }
 
 @Suppress("UNCHECKED_AS_TO_EXTERNAL_INTERFACE", "UNCHECKED_CAST_TO_EXTERNAL_INTERFACE")
-fun gatherImportsFromType(
-    type: Type,
-    consumerSourceFileName: String,
-    consumerNamespace: ModuleDeclaration?,
-    context: Context,
-): List<String> {
-    val typeScriptService = context.lookupService(typeScriptServiceKey) ?: return emptyList()
-    val importInfoService = context.lookupService(importInfoServiceKey) ?: return emptyList()
-    val typeChecker = typeScriptService.program.getTypeChecker()
+private fun Type.getPropertiesAsSymbols(): Array<Symbol> {
+    val props = this.asDynamic().getProperties()
+    if (props != null) return props.unsafeCast<Array<Symbol>>()
 
-    val consumerPackage = computePackage(consumerSourceFileName, consumerNamespace, context)
-    val imports = mutableListOf<String>()
-    val visited = mutableSetOf<Type>()
+    val apparentProps = this.asDynamic().getApparentProperties()
+    return if (apparentProps != null) apparentProps.unsafeCast<Array<Symbol>>() else emptyArray()
+}
 
-    type.getPropertiesAsSymbols().forEach { prop ->
-        val propType = typeChecker.getPropertyType(type, prop)
-        walkTypeAndGatherImports(propType, typeChecker, consumerPackage, context, imports, visited)
+@Suppress("UNCHECKED_AS_TO_EXTERNAL_INTERFACE", "UNCHECKED_CAST_TO_EXTERNAL_INTERFACE")
+private fun TypeChecker.getPropertyType(container: Type, symbol: Symbol): Type {
+    val propName = symbol.name
+    val contextualType = this.asDynamic().getTypeOfPropertyOfType(container, propName)
+    if (contextualType != null) return contextualType.unsafeCast<Type>()
+
+    val decl = symbol.valueDeclaration ?: symbol.declarations?.firstOrNull()
+    return if (decl != null) {
+        this.getTypeAtLocation(decl)
+    } else {
+        this.asDynamic().getDeclaredTypeOfSymbol(symbol).unsafeCast<Type>()
     }
-
-    return imports.distinct()
 }
 
 @Suppress("UNCHECKED_AS_TO_EXTERNAL_INTERFACE", "UNCHECKED_CAST_TO_EXTERNAL_INTERFACE")
@@ -313,6 +347,7 @@ fun gatherImportsFromTypeReference(
     consumerSourceFileName: String,
     consumerNamespace: ModuleDeclaration?,
     context: Context,
+    walkProperties: Boolean = false,
 ): List<String> {
     val typeScriptService = context.lookupService(typeScriptServiceKey) ?: return emptyList()
     val typeChecker = typeScriptService.program.getTypeChecker()
@@ -322,6 +357,22 @@ fun gatherImportsFromTypeReference(
     val visited = mutableSetOf<Type>()
 
     walkTypeAndGatherImports(type, typeChecker, consumerPackage, context, imports, visited)
+
+    // Walk properties only when explicitly requested (e.g. for expanded utility types
+    // like Partial<T> where constituent types are only discoverable through the Type object).
+    // Skip namespace types — their properties are already accessible through the
+    // namespace import (e.g. Vmoji.AnimojiVersion), and walking them causes dead imports
+    // from node_modules subdirectories.
+    if (walkProperties) {
+        val isNamespaceType = type.symbol != null
+                && type.symbol.declarations?.any { isModuleDeclaration(it) } == true
+        if (!isNamespaceType) {
+            type.getPropertiesAsSymbols().forEach { prop ->
+                val propType = typeChecker.getPropertyType(type, prop)
+                walkTypeAndGatherImports(propType, typeChecker, consumerPackage, context, imports, visited)
+            }
+        }
+    }
 
     return imports.distinct()
 }

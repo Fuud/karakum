@@ -73,6 +73,20 @@ private suspend fun resolveDefaultTypeArguments(
         .filter { it.isNotEmpty() }
 }
 
+private fun extractIdentifier(node: NodeWithTypeArguments): Identifier? {
+    return when {
+        isTypeReferenceNode(node) -> {
+            val typeName = (node as TypeReferenceNode).typeName
+            if (isIdentifier(typeName)) typeName as Identifier else null
+        }
+        isExpressionWithTypeArguments(node) -> {
+            val expression = (node as ExpressionWithTypeArguments).expression
+            if (isIdentifier(expression)) expression as Identifier else null
+        }
+        else -> null
+    }
+}
+
 @Suppress("UNCHECKED_AS_TO_EXTERNAL_INTERFACE")
 private fun registerDefaultTypeArgumentImports(
     node: NodeWithTypeArguments,
@@ -94,19 +108,5 @@ private fun registerDefaultTypeArgumentImports(
         for (importStatement in gatheredImports) {
             importInfoService.addDynamicImport(sourceFileName, namespace, importStatement)
         }
-    }
-}
-
-private fun extractIdentifier(node: NodeWithTypeArguments): Identifier? {
-    return when {
-        isTypeReferenceNode(node) -> {
-            val typeName = (node as TypeReferenceNode).typeName
-            if (isIdentifier(typeName)) typeName as Identifier else null
-        }
-        isExpressionWithTypeArguments(node) -> {
-            val expression = (node as ExpressionWithTypeArguments).expression
-            if (isIdentifier(expression)) expression as Identifier else null
-        }
-        else -> null
     }
 }

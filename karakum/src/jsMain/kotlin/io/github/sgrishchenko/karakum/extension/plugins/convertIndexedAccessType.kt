@@ -11,7 +11,7 @@ val convertIndexedAccessType = createPlugin plugin@{ node, context, render ->
 
     checkCoverageService?.deepCover(node)
 
-    val resolvedType = typeScriptService?.resolveType(node, context)
+    val resolvedType = typeScriptService?.resolveType(node, context = context, walkProperties = true)
 
     if (resolvedType == null) return@plugin "Any /* ${typeScriptService?.printNode(node)} */"
 

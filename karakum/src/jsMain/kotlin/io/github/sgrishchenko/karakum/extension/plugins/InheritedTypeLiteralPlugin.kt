@@ -65,7 +65,7 @@ private suspend fun convertFlatInheritedTypeLiteral(
         when {
             isTypeReferenceNode(part) -> {
                 // First try resolving via typeScriptService (handles utility types)
-                val resolved = typeScriptService?.resolveType(part, context, NodeBuilderFlags.NoTruncation + NodeBuilderFlags.InTypeAlias)
+                val resolved = typeScriptService?.resolveType(part, flags = NodeBuilderFlags.NoTruncation + NodeBuilderFlags.InTypeAlias)
                 if (resolved != null && isTypeLiteralNode(resolved)) {
                     checkCoverageService?.deepCover(resolved)
                     allMembers.addAll(resolved.members.asArray().map { render(it) })

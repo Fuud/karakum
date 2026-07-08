@@ -49,7 +49,7 @@ private fun resolveTypeIfNeeded(node: TypeNode, context: Context): Node {
     val typeScriptService = context.lookupService(typeScriptServiceKey)
 
     if (isIndexedAccessTypeNode(node)) {
-        val resolvedType = typeScriptService?.resolveType(node, context)
+        val resolvedType = typeScriptService?.resolveType(node)
 
         return resolvedType ?: node
     }
@@ -104,7 +104,7 @@ fun flatUnionTypes(node: UnionTypeNode, context: Context): ReadonlyArray<TypeNod
         if (isIndexedAccessTypeNode(type)) {
             val typeScriptService = context.lookupService(typeScriptServiceKey)
 
-            val resolvedType = typeScriptService?.resolveType(type, context)
+            val resolvedType = typeScriptService?.resolveType(type)
 
             if (resolvedType != null && isUnionTypeNode(resolvedType)) {
                 result += flatUnionTypes(resolvedType, context).toList()

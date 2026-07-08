@@ -45,7 +45,7 @@ fun computePackage(
     return createPackageName(mappingResult.`package`)
 }
 
-private fun resolveObjectQualifiers(
+internal fun resolveObjectQualifiers(
     declaration: Node,
     context: Context,
 ): List<String> {

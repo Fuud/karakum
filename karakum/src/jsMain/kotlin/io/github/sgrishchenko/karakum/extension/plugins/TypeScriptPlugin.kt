@@ -45,37 +45,23 @@ class TypeScriptService @JsExport.Ignore constructor(val program: Program) {
         return findClosest(rootNode, ::isModuleDeclaration) as ModuleDeclaration?
     }
 
-    fun resolveType(node: TypeNode, context: Context? = null, flags: NodeBuilderFlags = NodeBuilderFlags.NoTruncation): Node? {
+    fun resolveType(node: TypeNode, context: Context? = null, flags: NodeBuilderFlags = NodeBuilderFlags.NoTruncation, walkProperties: Boolean = false): Node? {
         val typeChecker = program.getTypeChecker()
         val sourceFile = node.getSourceFileOrNull()
         val type = typeChecker.getTypeAtLocation(node)
 
-        // Gather imports from the Type object BEFORE typeToTypeNode
+        // Gather imports from the Type object BEFORE typeToTypeNode.
+        // walkProperties should be true only for utility types (Partial, Required, etc.)
+        // where constituent type references are only discoverable through the Type object,
+        // not from synthetic AST nodes (which lack symbols).
         if (context != null && sourceFile != null) {
             val importInfoService = context.lookupService(importInfoServiceKey)
             if (importInfoService != null) {
                 val sourceFileName = sourceFile.fileName
                 val namespace = findClosestNamespace(node)
-                val gatheredImports = gatherImportsFromType(type, sourceFileName, namespace, context)
+                val gatheredImports = gatherImportsFromTypeReference(type, sourceFileName, namespace, context, walkProperties)
                 for (importStatement in gatheredImports) {
                     importInfoService.addDynamicImport(sourceFileName, namespace, importStatement)
-                }
-
-                // Also gather imports from TypeReferenceNode type arguments.
-                // When TypeScript expands utility types like Partial<Container<DecoderConfig>>,
-                // the resulting Type is an anonymous expanded type without ObjectFlags.Reference,
-                // so walkType can't find type arguments. Walk the AST node's type arguments instead.
-                if (isTypeReferenceNode(node)) {
-                    val typeArgs = node.typeArguments
-                    if (typeArgs != null) {
-                        typeArgs.asArray().forEach { typeArg ->
-                            val typeArgType = typeChecker.getTypeAtLocation(typeArg)
-                            val typeArgImports = gatherImportsFromType(typeArgType, sourceFileName, namespace, context)
-                            typeArgImports.forEach { importStatement ->
-                                importInfoService.addDynamicImport(sourceFileName, namespace, importStatement)
-                            }
-                        }
-                    }
                 }
             }
         }

@@ -24,6 +24,6 @@ fun removeUnusedImports(imports: ReadonlyArray<String>, body: String): ReadonlyA
 
         val (_, name) = match.groupValues
 
-        "\\b${name}\\b".toRegex().containsMatchIn(cleanedBody)
+        "(?<!\\.)\\b${name}\\b".toRegex().containsMatchIn(cleanedBody)
     }.toTypedArray()
 }

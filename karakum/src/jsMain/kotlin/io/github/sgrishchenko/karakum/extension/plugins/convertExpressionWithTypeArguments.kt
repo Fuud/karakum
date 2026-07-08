@@ -1,6 +1,7 @@
 package io.github.sgrishchenko.karakum.extension.plugins
 
 import io.github.sgrishchenko.karakum.extension.createPlugin
+import io.github.sgrishchenko.karakum.util.getSourceFileOrNull
 import js.numbers.contains
 import typescript.*
 
@@ -13,13 +14,11 @@ val convertExpressionWithTypeArguments = createPlugin plugin@{ node, context, re
     val expression = node.expression
     val renderedExpression = when {
         isIdentifier(expression) -> {
+            registerImportForTypeNode(expression, context)
             val qualifier = resolveNamespaceQualifier(expression, context)
             if (qualifier != null) "$qualifier.${expression.text}" else render(expression)
         }
         isPropertyAccessExpression(expression) -> {
-            // When a PropertyAccessExpression in a heritage clause references an enum member
-            // (e.g., MessageType.DEBUG in `extends MessageType.DEBUG`), render just the
-            // enum type name because in Kotlin, enum members are companion object vals, not types.
             val typeScriptService = context.lookupService(typeScriptServiceKey)
             val typeChecker = typeScriptService?.program?.getTypeChecker()
             var leftSymbol = typeChecker?.getSymbolAtLocation(expression.expression)
@@ -31,12 +30,40 @@ val convertExpressionWithTypeArguments = createPlugin plugin@{ node, context, re
             val isEnumReference = leftSymbol?.valueDeclaration?.let { isEnumDeclaration(it) } == true
                 || leftSymbol?.declarations?.any { isEnumDeclaration(it) } == true
 
-            if (isEnumReference) {
-                checkCoverageService?.cover(expression)
-                checkCoverageService?.cover(expression.name)
-                render(expression.expression)
-            } else {
-                render(expression)
+            val leftDecl = leftSymbol?.valueDeclaration ?: leftSymbol?.declarations?.firstOrNull()
+            val leftDeclNode = leftDecl?.unsafeCast<Node>()
+            val leftDeclSourceFileName = leftDeclNode?.getSourceFileOrNull()?.fileName
+            val isSyntheticModuleNamespace = !isEnumReference
+                && leftDeclNode != null
+                && leftDeclSourceFileName != null
+                && isInNodeModules(leftDeclSourceFileName)
+                && isModuleMappedAsSinglePackage(leftDeclSourceFileName, context)
+                && resolveExportedDeclarationName(leftDeclNode) == null
+
+            when {
+                isEnumReference -> {
+                    checkCoverageService?.cover(expression)
+                    checkCoverageService?.cover(expression.name)
+                    render(expression.expression)
+                }
+                isSyntheticModuleNamespace -> {
+                    val memberName = expression.name
+                    if (isIdentifier(memberName)) {
+                        registerImportForTypeNode(memberName, context)
+                        val qualifier = resolveNamespaceQualifier(memberName, context)
+                        if (qualifier != null) "$qualifier.${memberName.text}" else render(memberName)
+                    } else {
+                        render(expression.name)
+                    }
+                }
+                else -> {
+                    // Register import for the left part of PropertyAccessExpression
+                    // (e.g. Vmoji in Vmoji.Receiver)
+                    if (isIdentifier(expression.expression)) {
+                        registerImportForTypeNode(expression.expression, context)
+                    }
+                    render(expression)
+                }
             }
         }
         else -> render(expression)
