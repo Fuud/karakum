@@ -30,7 +30,7 @@ val convertPropertySignature = createPlugin plugin@{ node, context, render ->
 
     val rawName = render(node.name)
     val name = escapeIdentifier(rawName)
-    val annotation = createKebabAnnotation(node.name)
+    val annotation = createKebabAnnotation(node.name, context)
 
     val isOptional = node.questionToken != null
 

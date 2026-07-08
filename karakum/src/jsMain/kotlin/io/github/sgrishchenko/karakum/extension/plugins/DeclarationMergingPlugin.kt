@@ -142,7 +142,23 @@ class DeclarationMergingService @JsExport.Ignore constructor(private val program
             return@filter true
         }
 
-        return (members + exports + filteredBodyMembers).filter { member ->
+        // Properties with computed names (e.g. [EnumName.MEMBER]) are not in symbol.members,
+        // so include them from the AST node's direct members.
+        val computedNameMembers: List<NamedDeclaration> = when {
+            isInterfaceDeclaration(node) -> node.members.asArray()
+                .filter { member ->
+                    val name = member.name
+                    name != null && !isIdentifier(name) && !isStringLiteral(name) && !isNumericLiteral(name)
+                }
+            isClassDeclaration(node) -> node.members.asArray()
+                .filter { member ->
+                    val name = member.name
+                    name != null && !isIdentifier(name) && !isStringLiteral(name) && !isNumericLiteral(name)
+                }
+            else -> emptyList()
+        }
+
+        return (members + exports + filteredBodyMembers + computedNameMembers).filter { member ->
             val parent = member.parent
 
             if (
