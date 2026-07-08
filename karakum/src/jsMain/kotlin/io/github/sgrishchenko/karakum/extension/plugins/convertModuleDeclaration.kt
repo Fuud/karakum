@@ -14,6 +14,9 @@ val convertModuleDeclaration = createPlugin plugin@{ node, context, render ->
     val checkCoverageService = context.lookupService(checkCoverageServiceKey)
     checkCoverageService?.cover(node)
 
+    val declarationMergingService = context.lookupService(declarationMergingServiceKey)
+    if (declarationMergingService?.isMergedWithInterface(node) == true) return@plugin ""
+
     val typeScriptService = context.lookupService(typeScriptServiceKey)
     val namespaceInfoService = context.lookupService(namespaceInfoServiceKey)
 

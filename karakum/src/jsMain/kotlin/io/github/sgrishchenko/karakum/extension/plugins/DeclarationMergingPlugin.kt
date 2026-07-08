@@ -160,6 +160,56 @@ class DeclarationMergingService @JsExport.Ignore constructor(private val program
             .toTypedArray()
     }
 
+    fun isMergedWithInterface(node: NamedDeclaration): Boolean {
+        val symbol = this.getSymbol(node) ?: return false
+        val declarations = symbol.declarations ?: return false
+        return declarations.any { isInterfaceDeclaration(it) }
+    }
+
+    fun hasMergedValue(node: NamedDeclaration): Boolean {
+        if (!isInterfaceDeclaration(node)) return false
+        val symbol = this.getSymbol(node) ?: return false
+        val valueDeclaration = symbol.valueDeclaration ?: return false
+        return !isClassDeclaration(valueDeclaration)
+    }
+
+    fun getCompanionObjectMembers(
+        node: NamedDeclaration,
+        context: Context,
+    ): ReadonlyArray<NamedDeclaration>? {
+        val symbol = this.getSymbol(node)
+        if (symbol == null) return null
+
+        val exports = this.getUniqMembers(symbol.exports)
+            .filter { member -> !isTypeParameterDeclaration(member) }
+
+        val namespaceInfoService = context.lookupService(namespaceInfoServiceKey)
+
+        return exports.filter { member ->
+            val parent = member.parent
+
+            if (
+                isModuleBlock(parent)
+                && namespaceInfoService?.resolveNamespaceStrategy(parent.parent) == NamespaceStrategy.`package`
+            ) {
+                return@filter false
+            }
+
+            if (isVariableDeclarationList(parent)) {
+                val grandparent = parent.parent.parent
+
+                if (
+                    isModuleBlock(grandparent)
+                    && namespaceInfoService?.resolveNamespaceStrategy(grandparent.parent) == NamespaceStrategy.`package`
+                ) {
+                    return@filter false
+                }
+            }
+
+            return@filter true
+        }.toTypedArray()
+    }
+
     @Suppress("CANNOT_CHECK_FOR_EXTERNAL_INTERFACE")
     private fun isSignatureDeclaration(declaration: Declaration): Boolean {
         contract {

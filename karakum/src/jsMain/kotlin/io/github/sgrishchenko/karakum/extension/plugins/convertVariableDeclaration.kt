@@ -14,6 +14,9 @@ val convertVariableDeclaration = createPlugin plugin@{ node, context, render ->
     val checkCoverageService = context.lookupService(checkCoverageServiceKey)
     checkCoverageService?.cover(node)
 
+    val declarationMergingService = context.lookupService(declarationMergingServiceKey)
+    if (declarationMergingService?.isMergedWithInterface(node) == true) return@plugin ""
+
     // skip initializer
     node.initializer?.let { checkCoverageService?.cover(it) }
 
@@ -48,6 +51,11 @@ val convertVariableDeclaration = createPlugin plugin@{ node, context, render ->
     val type = node.type
         ?.let { render(it) }
         ?: "Any? /* should be inferred */" // TODO: infer types
+
+    // When the type resolves to the same name as the variable (e.g. const Links: { ... }
+    // where the TypeLiteralPlugin generates interface Links), the variable would conflict
+    // with the generated interface. The interface already has a companion object for JS value access.
+    if (name == type) return@plugin ""
 
     "${leadingComment}${ifPresent(externalModifier) { "$it " }}${modifier} ${name}: $type"
 }
