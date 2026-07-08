@@ -209,6 +209,8 @@ private fun resolveDerivedFilesConflicts(
             }
 
             if (conflictResolutionStrategy == ConflictResolutionStrategy.join) {
+                if (item.body == other.body) return@merge item
+
                 return@merge DerivedFile(
                     fileName = item.fileName,
                     `package` = item.`package`,

@@ -90,9 +90,14 @@ class TypeScriptService @JsExport.Ignore constructor(val program: Program) {
             if (sourceFile != null) {
                 this.virtualSourceFiles[typeNode] = sourceFile
             } else {
-                val parentSourceFile = this.virtualSourceFiles[node]
-                if (parentSourceFile != null) {
-                    this.virtualSourceFiles[typeNode] = parentSourceFile
+                var ancestor: Node? = node
+                var ancestorSourceFile: SourceFile? = null
+                while (ancestor != null && ancestorSourceFile == null) {
+                    ancestorSourceFile = this.virtualSourceFiles[ancestor]
+                    ancestor = getParent(ancestor)
+                }
+                if (ancestorSourceFile != null) {
+                    this.virtualSourceFiles[typeNode] = ancestorSourceFile
                 }
             }
             setParentNodes(typeNode)

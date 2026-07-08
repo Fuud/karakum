@@ -37,6 +37,10 @@ class NameResolverService(nameResolvers: List<NameResolver>) {
         resolvedNodes[node] = result
         return result
     }
+
+    fun preregisterName(node: Node, name: String) {
+        resolvedNodes[node] = name
+    }
 }
 
 @JsExport

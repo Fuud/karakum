@@ -6,6 +6,7 @@ import io.github.sgrishchenko.karakum.extension.createPlugin
 import io.github.sgrishchenko.karakum.extension.isBuiltin
 import js.numbers.plus
 import typescript.ExpressionWithTypeArguments
+import typescript.Identifier
 import typescript.Node
 import typescript.NodeBuilderFlags
 import typescript.TypeReferenceNode
@@ -45,8 +46,17 @@ private fun isUtilityTypeExpression(node: ExpressionWithTypeArguments, context: 
 private suspend fun resolveAndRender(node: Node, context: Context, render: Render<Node>): String? {
     val checkCoverageService = context.lookupService(checkCoverageServiceKey)
     val typeScriptService = context.lookupService(typeScriptServiceKey)
+    val utilityTypeNameService = context.lookupService(utilityTypeNameServiceKey)
+    val nameResolverService = context.requireService(nameResolverServiceKey)
+    val typeChecker = typeScriptService?.program?.getTypeChecker()
 
     checkCoverageService?.deepCover(node)
+
+    val type = typeChecker?.getTypeAtLocation(node)
+
+    val existingName = if (type != null && utilityTypeNameService != null) {
+        utilityTypeNameService.lookupName(type)
+    } else null
 
     val resolvedType = typeScriptService?.resolveType(
         node.unsafeCast<typescript.TypeNode>(),
@@ -58,7 +68,18 @@ private suspend fun resolveAndRender(node: Node, context: Context, render: Rende
 
     if (isConditionalTypeNode(resolvedType)) return "Any /* ${typeScriptService?.printNode(node)} */"
 
-    return render(resolvedType)
+    if (existingName != null) {
+        nameResolverService.preregisterName(resolvedType, existingName)
+    }
+
+    val result = render(resolvedType)
+
+    if (existingName == null && type != null && utilityTypeNameService != null) {
+        val assignedName = nameResolverService.resolveName(resolvedType, context)
+        utilityTypeNameService.registerName(type, assignedName)
+    }
+
+    return result
 }
 
 val convertUtilityType = createPlugin plugin@{ node, context, render ->

@@ -2,7 +2,7 @@
 
 package sandbox.base.utilityType.simple
 
-external interface Temp0 {
+external interface Temp4 {
 var name: String
 var age: Double
 }

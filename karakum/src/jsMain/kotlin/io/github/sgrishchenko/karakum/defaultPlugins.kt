@@ -23,6 +23,7 @@ fun createPlugins(
 ): ReadonlyArray<Plugin> = arrayOf(
     ConfigurationPlugin(configuration),
     TypeScriptPlugin(program),
+    UtilityTypeNameServicePlugin(),
     InjectionPlugin(injections),
     NameResolverPlugin(nameResolvers),
     InheritanceModifierPlugin(inheritanceModifiers),
